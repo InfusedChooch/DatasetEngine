@@ -1,0 +1,45 @@
+# --- SISTEMA OPERATIVO ---
+.DS_Store
+Thumbs.db
+
+# --- PYTHON (Backend) ---
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual Environments
+venv/
+env/
+BEvenv/
+
+# Variabili d'ambiente
+.env
+
+# --- JAVASCRIPT / REACT (Frontend) ---
+# Dipendenze (fondamentale! sono pesantissime)
+node_modules/
+frontend/node_modules/
+
+# Build di produzione
+dist/
+build/
+
+# Log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# --- PROGETTO SPECIFICO ---
+# Ignora la cartella di storage dei dati/progetti generati a runtime
+# (Basato sul tuo screenshot e l'handoff precedente)
+backend/DatasetEngine/
+DatasetEngine/
+storage/
+
+# File temporanei video/immagini
+*.mp4
+*.avi
+*.mov
+# Ma mantieni i file .gitkeep se vuoi committare cartelle vuote
+!*.gitkeep
