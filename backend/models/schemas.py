@@ -15,9 +15,18 @@ class DatasetStats(BaseModel):
     avg_labels_per_image: float
     background_images: int  # Immagini senza label
     box_size_distribution: Dict[str, int]  # Small, Medium, Large
+    duplicate_images: int
+    duplicate_labels: Dict[str, int] # Class Name -> Count of duplicate boxes
+    duplicate_groups: List[List[str]] = []
 
 class AnalyzePathRequest(BaseModel):
     path: str
+
+class CleanupRequest(BaseModel):
+    dataset_path: str
+    duplicate_groups: List[List[str]]
+    clean_images: bool = True
+    clean_labels: bool = True
 
 # Merger
 class ClassMapping(BaseModel):

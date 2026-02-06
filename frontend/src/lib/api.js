@@ -3,26 +3,34 @@ import axios from 'axios'
 const API_URL = 'http://localhost:8000/api'
 
 export const api = {
-  // Analyzer
+  // --- ANALYZER (LOCAL) ---
+  
+  // Analizza il dataset locale
   analyzeLocalDataset: (path) => {
     return axios.post(`${API_URL}/analyze/local`, { path })
   },
-
+  
+  // Apre il selettore file di Windows
   browseFile: () => {
     return axios.get(`${API_URL}/analyze/browse`)
   },
   
-  getStats: (datasetId) => 
-    axios.get(`${API_URL}/analyze/stats/${datasetId}`),
+  // Pulisce i duplicati
+  cleanupDataset: (data) => {
+    return axios.post(`${API_URL}/analyze/cleanup`, data)
+  },
   
-  getHeatmap: (datasetId) => 
-    axios.get(`${API_URL}/analyze/heatmap/${datasetId}`),
-  
-  // Merger
+  // Helper per ottenere l'URL dell'immagine locale (non è una chiamata axios, restituisce stringa)
+  getImageUrl: (localPath) => {
+    if (!localPath) return '';
+    return `${API_URL}/analyze/image?path=${encodeURIComponent(localPath)}`
+  },
+
+  // --- MERGER ---
   executeMerge: (data) => 
     axios.post(`${API_URL}/merge/execute`, data),
   
-  // Model Improvement
+  // --- MODEL IMPROVEMENT ---
   createImprovementProject: (formData) => 
     axios.post(`${API_URL}/improve/create`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
@@ -52,7 +60,7 @@ export const api = {
   listImprovementProjects: () => 
     axios.get(`${API_URL}/improve/list`),
   
-  // Video-to-Dataset
+  // --- VIDEO TO DATASET ---
   uploadVideo: (videoFile, modelFile) => {
     const formData = new FormData()
     formData.append('video', videoFile)

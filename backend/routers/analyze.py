@@ -1,9 +1,11 @@
-from fastapi import APIRouter, UploadFile, HTTPException
+from fastapi import APIRouter, HTTPException
+from fastapi.responses import FileResponse
 from pathlib import Path
 import uuid
-from config import settings
+import os
 from services.analyzer import AnalyzerService
-from models.schemas import AnalyzePathRequest, DatasetStats
+from models.schemas import AnalyzePathRequest, DatasetStats, CleanupRequest
+# Assicurati di aver creato il file backend/utils/dialogs.py come detto nei passaggi precedenti
 from utils.dialogs import open_file_dialog 
 
 router = APIRouter()
@@ -11,59 +13,61 @@ analyzer = AnalyzerService()
 
 @router.get("/browse")
 async def browse_file():
-    path = open_file_dialog()
-    if not path:
+    """
+    Apre la finestra di dialogo di Windows sul server per selezionare il file.
+    """
+    try:
+        path = open_file_dialog()
+        return {"path": path if path else ""}
+    except Exception as e:
+        print(f"Errore Dialog: {e}")
         return {"path": ""}
-    return {"path": path}
 
 @router.post("/local", response_model=DatasetStats)
 async def analyze_local_dataset(request: AnalyzePathRequest):
+    """
+    Analizza un dataset locale dato il percorso del file data.yaml.
+    """
     try:
-        # FIX LOGICA: Se l'utente passa una cartella, cerchiamo data.yaml dentro
-        path_obj = Path(request.path)
-        if path_obj.is_dir():
-            possible_yaml = path_obj / "data.yaml"
-            if possible_yaml.exists():
-                path_obj = possible_yaml
-            else:
-                # Prova a vedere se c'è un .yml
-                possible_yml = path_obj / "data.yml"
-                if possible_yml.exists():
-                    path_obj = possible_yml
-                else:
-                    raise FileNotFoundError(f"Nessun file data.yaml trovato nella cartella: {request.path}")
-        
-        # Ora passiamo il percorso del FILE, non della cartella
+        # Generiamo un ID sessione, ma i dati restano dove sono
         dataset_id = str(uuid.uuid4())
-        stats = analyzer.analyze_dataset(str(path_obj), dataset_id)
+        stats = analyzer.analyze_dataset(request.path, dataset_id)
         return stats
-
     except FileNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
-        # Stampa l'errore nella console per debug
-        print(f"Errore Backend: {e}")
-        raise HTTPException(status_code=500, detail=f"Errore: {str(e)}")
+        print(f"Errore Analisi: {e}")
+        raise HTTPException(status_code=500, detail=f"Errore durante l'analisi: {str(e)}")
 
-@router.get("/stats/{dataset_id}")
-async def get_stats(dataset_id: str):
-    yaml_path = settings.get_dataset_path(dataset_id) / "data.yaml"
-    
-    if not yaml_path.exists():
-        raise HTTPException(404, "Dataset not found")
-    
-    stats = analyzer.analyze_dataset(yaml_path, dataset_id)
-    return stats
+@router.post("/cleanup")
+async def cleanup_dataset_endpoint(request: CleanupRequest):
+    """
+    Esegue la pulizia fisica dei file duplicati.
+    """
+    try:
+        result = analyzer.cleanup_dataset(request)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/heatmap/{dataset_id}")
-async def get_heatmap(dataset_id: str):
-    yaml_path = settings.get_dataset_path(dataset_id) / "data.yaml"
-    
-    if not yaml_path.exists():
-        raise HTTPException(404, "Dataset not found")
-    
-    stats = analyzer.analyze_dataset(yaml_path, dataset_id)
-    return {
-        "labels": list(stats.class_distribution.keys()),
-        "counts": list(stats.class_distribution.values())
-    }
+@router.get("/image")
+async def get_local_image(path: str):
+    """
+    Legge un file locale e lo restituisce al browser come stream di byte.
+    Aggira le restrizioni di sicurezza del browser che impediscono di caricare file locali.
+    """
+    try:
+        file_path = Path(path)
+        if not file_path.exists():
+            raise HTTPException(status_code=404, detail="Image not found")
+        
+        # Determina il Content-Type corretto
+        suffix = file_path.suffix.lower()
+        media_type = "image/jpeg" # Default
+        if suffix == ".png": media_type = "image/png"
+        elif suffix == ".webp": media_type = "image/webp"
+        elif suffix in [".bmp", ".gif"]: media_type = f"image/{suffix[1:]}"
+        
+        return FileResponse(file_path, media_type=media_type)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error serving image: {str(e)}")
