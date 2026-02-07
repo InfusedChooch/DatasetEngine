@@ -17,3 +17,13 @@ def open_file_dialog():
     
     root.destroy()
     return file_path
+
+def open_folder_dialog():
+    root = tk.Tk()
+    root.withdraw()
+    root.attributes('-topmost', True)
+    folder_path = filedialog.askdirectory(
+        title="Seleziona Cartella di Output"
+    )
+    root.destroy()
+    return folder_path

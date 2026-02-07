@@ -29,18 +29,26 @@ class CleanupRequest(BaseModel):
     clean_labels: bool = True
 
 # Merger
-class ClassMapping(BaseModel):
-    source_dataset: str
+class DatasetInfo(BaseModel):
+    """Info preliminari per la UI del merger"""
+    path: str
+    name: str
+    classes: Dict[int, str]
+    total_images: int
+    split_stats: Dict[str, int] # {'train': 100, 'val': 20...}
+
+class MergeMappingRule(BaseModel):
+    dataset_index: int     # 0 = Master, 1+ = Clients
     source_class_id: int
-    source_class_name: str
-    target_class_id: Optional[int]
-    target_class_name: Optional[str]
-    action: str
+    target_class_id: int   # -1 = Escludi (Drop)
 
 class MergeRequest(BaseModel):
-    dataset_ids: List[str]
-    mappings: List[ClassMapping]
-    output_name: str
+    datasets: List[DatasetInfo] # Lista ordinata: [0] è Master
+    target_classes: List[str]   # La lista finale dei nomi delle classi (es: ['ball', 'hoop', 'new_class'])
+    mappings: List[MergeMappingRule] # Regole di conversione ID -> ID
+    output_path: str
+    split_ratios: List[float] # [train, val, test] es: [0.7, 0.2, 0.1]
+    seed: int = 42
 
 # Model Improvement
 class FilterMode(str, Enum):

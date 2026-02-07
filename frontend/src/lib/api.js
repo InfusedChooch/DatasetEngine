@@ -27,8 +27,14 @@ export const api = {
   },
 
   // --- MERGER ---
-  executeMerge: (data) => 
-    axios.post(`${API_URL}/merge/execute`, data),
+// Recupera le info del dataset (Master o Client)
+  getDatasetInfo: (path) => axios.post(`${API_URL}/merge/info`, { path }),
+  
+  // Apre il selettore cartella per l'output
+  browseFolder: () => axios.get(`${API_URL}/merge/browse_folder`),
+  
+  // Esegue il merge
+  executeMerge: (data) => axios.post(`${API_URL}/merge/execute`, data),
   
   // --- MODEL IMPROVEMENT ---
   createImprovementProject: (formData) => 
