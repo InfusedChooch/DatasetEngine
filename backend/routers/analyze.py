@@ -1,11 +1,10 @@
 from fastapi import APIRouter, HTTPException
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from pathlib import Path
 import uuid
 import os
 from services.analyzer import AnalyzerService
 from models.schemas import AnalyzePathRequest, DatasetStats, CleanupRequest
-# Assicurati di aver creato il file backend/utils/dialogs.py come detto nei passaggi precedenti
 from utils.dialogs import open_file_dialog 
 
 router = APIRouter()
@@ -23,21 +22,19 @@ async def browse_file():
         print(f"Errore Dialog: {e}")
         return {"path": ""}
 
-@router.post("/local", response_model=DatasetStats)
+@router.post("/local")
 async def analyze_local_dataset(request: AnalyzePathRequest):
     """
-    Analizza un dataset locale dato il percorso del file data.yaml.
+    Ritorna uno stream NDJSON con log e progresso in tempo reale.
     """
     try:
-        # Generiamo un ID sessione, ma i dati restano dove sono
         dataset_id = str(uuid.uuid4())
-        stats = analyzer.analyze_dataset(request.path, dataset_id)
-        return stats
-    except FileNotFoundError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        return StreamingResponse(
+            analyzer.analyze_dataset_generator(request.path, dataset_id),
+            media_type="application/x-ndjson"
+        )
     except Exception as e:
-        print(f"Errore Analisi: {e}")
-        raise HTTPException(status_code=500, detail=f"Errore durante l'analisi: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/cleanup")
 async def cleanup_dataset_endpoint(request: CleanupRequest):
@@ -54,7 +51,6 @@ async def cleanup_dataset_endpoint(request: CleanupRequest):
 async def get_local_image(path: str):
     """
     Legge un file locale e lo restituisce al browser come stream di byte.
-    Aggira le restrizioni di sicurezza del browser che impediscono di caricare file locali.
     """
     try:
         file_path = Path(path)

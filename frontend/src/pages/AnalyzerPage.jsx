@@ -1,7 +1,6 @@
 // frontend/src/pages/AnalyzerPage.jsx
-import { useState, useEffect } from 'react'
-// FIX: Aggiunto BarChart3 agli import
-import { Search, AlertCircle, FolderOpen, FileSearch, PieChart as PieIcon, Layers, Image as ImageIcon, Copy, AlertTriangle, Trash2, ArrowRight, ArrowLeft, CheckCircle2, RefreshCw, BarChart3 } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { Search, AlertCircle, FolderOpen, FileSearch, PieChart as PieIcon, Layers, Image as ImageIcon, Copy, AlertTriangle, Trash2, ArrowRight, ArrowLeft, CheckCircle2, RefreshCw, BarChart3, Terminal } from 'lucide-react'
 import { api } from '../lib/api'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, ComposedChart } from 'recharts'
 import { useDatasetStore } from '../hooks/useDatasetStore'
@@ -15,7 +14,11 @@ export default function AnalyzerPage() {
   const [pathInput, setPathInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
-  const [loadingMsg, setLoadingMsg] = useState('Initializing...')
+  
+  // Stati per il caricamento "WOW" (Streaming)
+  const [progress, setProgress] = useState({ current: 0, total: 0, percent: 0 })
+  const [logs, setLogs] = useState([])
+  const logsEndRef = useRef(null)
   
   // Stati per il Duplicate Inspector
   const [currentDupIndex, setCurrentDupIndex] = useState(0)
@@ -25,22 +28,10 @@ export default function AnalyzerPage() {
   const [modalConfig, setModalConfig] = useState({ type: '', title: '', msg: '' })
   const [successMsg, setSuccessMsg] = useState(null)
 
-  // Loading Animation Loop
+  // Auto-scroll dei log
   useEffect(() => {
-    if (!loading) return;
-    const messages = [
-        "🔍 Analyzing folder structure...",
-        "📦 Indexing dataset...",
-        "🧮 Calculating class statistics...",
-        "📐 Measuring bounding boxes...",
-        "👯 Hunting for duplicates...",
-        "✨ Generating report..."
-    ];
-    let i = 0;
-    setLoadingMsg(messages[0]);
-    const interval = setInterval(() => { i = (i + 1) % messages.length; setLoadingMsg(messages[i]); }, 1200); 
-    return () => clearInterval(interval);
-  }, [loading]);
+    logsEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }, [logs])
 
   const handleBrowse = async () => {
     try {
@@ -49,15 +40,65 @@ export default function AnalyzerPage() {
     } catch (err) { console.error(err) }
   }
 
+  // --- NUOVA FUNZIONE DI ANALISI (STREAMING) ---
   const runAnalysis = async (path) => {
-    setLoading(true); setError(null); setSuccessMsg(null); setCurrentDupIndex(0);
+    setLoading(true); 
+    setError(null); 
+    setSuccessMsg(null); 
+    setCurrentDupIndex(0);
+    setLogs(["🚀 Initializing Deep Analysis..."]);
+    setProgress({ current: 0, total: 0, percent: 0 });
+
     const cleanPath = path.replace(/"/g, '')
 
     try {
-      const { data } = await api.analyzeLocalDataset(cleanPath)
-      setStats(data); setCurrentDataset(data);
-    } catch (err) { setError(err.response?.data?.detail || 'Dataset analysis error'); } 
-    finally { setLoading(false); }
+        // Usiamo fetch nativo per leggere lo stream NDJSON
+        const response = await fetch('http://localhost:8000/api/analyze/local', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: cleanPath })
+        })
+
+        const reader = response.body.getReader()
+        const decoder = new TextDecoder()
+
+        while(true) {
+            const { done, value } = await reader.read()
+            if (done) break
+            
+            const chunk = decoder.decode(value, { stream: true })
+            const lines = chunk.split('\n').filter(line => line.trim() !== '')
+            
+            for (const line of lines) {
+                try {
+                    const data = JSON.parse(line)
+                    
+                    if (data.type === 'log') {
+                        setLogs(prev => [...prev, data.msg])
+                    } 
+                    else if (data.type === 'progress') {
+                        setProgress({
+                            current: data.current,
+                            total: data.total,
+                            percent: data.percent
+                        })
+                    }
+                    else if (data.type === 'complete') {
+                        setStats(data.data)
+                        setCurrentDataset(data.data)
+                        setLoading(false)
+                    }
+                    else if (data.type === 'error') {
+                        setError(data.msg)
+                        setLoading(false)
+                    }
+                } catch (e) { console.error("Parse error", e) }
+            }
+        }
+    } catch (err) { 
+        setError("Connection failed. Check backend.")
+        setLoading(false)
+    }
   }
 
   const handleAnalyzeSubmit = (e) => {
@@ -87,8 +128,8 @@ export default function AnalyzerPage() {
 
   const executeCleanup = async () => {
     setModalOpen(false)
-    setLoading(true) // Mostra loader durante pulizia
-    setLoadingMsg("🧹 Cleaning up disk...")
+    setLoading(true) 
+    setLogs(["🧹 Cleaning up disk...", "Applying changes..."])
     
     try {
         const result = await api.cleanupDataset({
@@ -101,8 +142,7 @@ export default function AnalyzerPage() {
         // Successo
         setSuccessMsg(`Cleanup Completed: Deleted ${result.deleted_images} images and fixed ${result.fixed_labels} labels.`)
         
-        // Auto-Refresh dopo 1.5 secondi
-        setLoadingMsg("🔄 Refreshing statistics...")
+        // Auto-Refresh
         setTimeout(() => {
             runAnalysis(pathInput)
         }, 1500)
@@ -113,9 +153,9 @@ export default function AnalyzerPage() {
     }
   }
 
-  // --- DATA PREPARATION ---
+  // --- DATA PREPARATION (IDENTICA A PRIMA) ---
   const barData = stats?.class_distribution ? Object.entries(stats.class_distribution)
-    .sort((a,b) => b[1] - a[1]) // Ordina per frequenza
+    .sort((a,b) => b[1] - a[1]) 
     .map(([name, count]) => ({ name, count })) : []
 
   const pieData = stats?.box_size_distribution ? [
@@ -153,7 +193,7 @@ export default function AnalyzerPage() {
                         <input type="text" value={pathInput} onChange={(e) => setPathInput(e.target.value)} placeholder="C:\Users\Name\Datasets\Project\data.yaml" className="w-full bg-slate-900/50 border border-slate-600 rounded-lg py-3 pl-12 pr-4 text-white placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all" />
                     </div>
                     <button type="submit" disabled={loading || !pathInput} className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-8 py-3 rounded-lg font-bold transition-all shadow-lg hover:shadow-blue-500/30 flex items-center gap-2">
-                        {loading ? 'Processing...' : 'Analyze'} {!loading && <Search size={20} />}
+                        {loading ? 'Analyzing...' : 'Analyze'} {!loading && <Search size={20} />}
                     </button>
                 </div>
             </div>
@@ -171,10 +211,10 @@ export default function AnalyzerPage() {
       )}
 
       {/* --- DASHBOARD --- */}
-      {stats && (
+      {stats && !loading && (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
             
-            {/* 1. KPI CARDS */}
+            {/* KPI CARDS */}
             <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
                 <StatCard label="Images" value={stats.total_images} icon={<ImageIcon size={20} />} delay={0} />
                 <StatCard label="Labels" value={stats.total_labels} icon={<Layers size={20} />} delay={100} />
@@ -183,7 +223,7 @@ export default function AnalyzerPage() {
                 <StatCard label="Dup Labels" value={totalDupLabels} icon={<AlertTriangle size={20} />} color={totalDupLabels > 0 ? "text-amber-400" : "text-slate-400"} delay={400} />
             </div>
             
-            {/* 2. CHARTS SECTION (WOW EFFECT) */}
+            {/* CHARTS */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 
                 {/* CLASS DISTRIBUTION CHART */}
@@ -406,21 +446,43 @@ export default function AnalyzerPage() {
         </div>
       )}
 
+      {/* --- WOW LOADER: TERMINAL STYLE + PROGRESS --- */}
       {loading && createPortal(
         <div 
-          className="fixed inset-0 w-full h-full z-[99999] bg-slate-900/90 backdrop-blur-md flex flex-col items-center justify-center overflow-hidden"
+          className="fixed inset-0 w-full h-full z-[99999] bg-slate-900/95 backdrop-blur-xl flex flex-col items-center justify-center p-8"
           style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
         >
-          <div className="relative">
-            <div className="w-24 h-24 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin"></div>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-16 h-16 border-4 border-purple-500/30 border-b-purple-500 rounded-full animate-spin-reverse"></div>
+          <div className="w-full max-w-2xl bg-slate-800 border border-slate-700 rounded-2xl p-8 shadow-2xl">
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-12 h-12 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin"></div>
+              <div>
+                <h2 className="text-2xl font-bold text-white">Analyzing Dataset...</h2>
+                <p className="text-blue-300 font-mono">Deep scanning structure, hashing files, checking integrity.</p>
+              </div>
+            </div>
+
+            {/* Progress Bar */}
+            <div className="mb-2 flex justify-between text-sm font-bold text-slate-300">
+              <span>Progress</span>
+              <span>{progress.current} / {progress.total} ({progress.percent}%)</span>
+            </div>
+            <div className="w-full h-4 bg-slate-900 rounded-full overflow-hidden border border-slate-700 mb-6">
+              <div 
+                className="h-full bg-gradient-to-r from-blue-500 to-cyan-500 transition-all duration-300 ease-out"
+                style={{ width: `${progress.percent}%` }}
+              />
+            </div>
+
+            {/* Log Terminal */}
+            <div className="bg-black rounded-lg p-4 font-mono text-xs h-40 overflow-y-auto border border-slate-700 text-slate-400 custom-scrollbar shadow-inner">
+              {logs.map((log, i) => (
+                <div key={i} className="mb-1 border-l-2 border-slate-700 pl-2">{log}</div>
+              ))}
+              <div ref={logsEndRef} />
             </div>
           </div>
-          <h2 className="text-3xl font-bold text-white mt-8 tracking-tight">Processing Dataset</h2>
-          <p className="text-blue-300 font-mono text-lg mt-3 animate-pulse">{loadingMsg}</p>
         </div>,
-        document.body  // Renderizza direttamente nel body
+        document.body
       )}
 
     </div>

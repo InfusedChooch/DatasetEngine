@@ -1,9 +1,10 @@
 import yaml
+import hashlib
+import json
 from pathlib import Path
 from collections import Counter
 from models.schemas import DatasetStats
 import os
-import hashlib
 
 class AnalyzerService:
     
@@ -14,7 +15,6 @@ class AnalyzerService:
             if size < 65536:
                 with open(path, "rb") as f:
                     return hashlib.md5(f.read()).hexdigest()
-            
             h = hashlib.md5()
             with open(path, "rb") as f:
                 h.update(f.read(4096))
@@ -28,74 +28,123 @@ class AnalyzerService:
             return ""
 
     @staticmethod
-    def analyze_dataset(yaml_path_str: str, dataset_id: str) -> DatasetStats:
-        print(f"\n--- ANALYZING FOR DUPLICATES INSPECTION ---")
-        yaml_path = Path(yaml_path_str)
-        if not yaml_path.exists(): raise FileNotFoundError(f"File not found: {yaml_path}")
-
-        with open(yaml_path, 'r', encoding='utf-8') as f: config = yaml.safe_load(f)
-        yaml_dir = yaml_path.parent
+    def analyze_dataset_generator(yaml_path_str: str, dataset_id: str):
+        """
+        GENERATORE: Esegue l'analisi e invia aggiornamenti in tempo reale (Streaming NDJSON).
+        """
+        yield json.dumps({"type": "log", "msg": "🚀 Starting Deep Analysis..."}) + "\n"
         
-        # Path resolution standard
+        yaml_path = Path(yaml_path_str)
+        if not yaml_path.exists():
+            yield json.dumps({"type": "error", "msg": f"File not found: {yaml_path}"}) + "\n"
+            return
+
+        with open(yaml_path, 'r', encoding='utf-8') as f:
+            config = yaml.safe_load(f)
+        
+        yield json.dumps({"type": "log", "msg": "📄 Configuration loaded. Resolving paths..."}) + "\n"
+        
+        yaml_dir = yaml_path.parent
         train_config = config.get('train')
         root_path = yaml_dir 
+
         if 'path' in config:
             config_path = Path(config['path'])
-            root_path = config_path if config_path.is_absolute() else (yaml_dir / config_path).resolve()
+            if config_path.is_absolute(): root_path = config_path
+            else: root_path = (yaml_dir / config_path).resolve()
 
         if train_config:
             p_train = Path(train_config)
-            train_path = p_train if p_train.is_absolute() else (root_path / p_train).resolve()
+            if p_train.is_absolute(): train_path = p_train
+            else: train_path = (root_path / p_train).resolve()
         else:
             train_path = root_path / 'train'
 
-        if not train_path.exists():
-            for alt in [yaml_dir/'train', yaml_dir/'images'/'train', yaml_dir.parent/'train']:
-                if alt.exists(): train_path = alt; break
+        # Fallback
+        if not train_path.exists() or not any(train_path.iterdir() if train_path.is_dir() else []):
+            yield json.dumps({"type": "log", "msg": "⚠️ Standard path empty. Trying smart search..."}) + "\n"
+            alternatives = [
+                yaml_dir / 'train', yaml_dir / 'train' / 'images', yaml_dir / 'images' / 'train',
+                yaml_dir.parent / 'train', yaml_dir.parent / 'images' / 'train'
+            ]
+            for alt in alternatives:
+                if alt.exists() and alt.is_dir():
+                    train_path = alt
+                    break
         
-        # Gather Images
+        yield json.dumps({"type": "log", "msg": f"📂 Target Directory: {train_path}"}) + "\n"
+
+        # --- GATHER IMAGES ---
         image_files = []
         if train_path.is_dir():
-            image_files = [p for p in train_path.rglob('*') if p.suffix.lower() in {'.jpg','.jpeg','.png','.bmp','.webp'}]
+            extensions = {'.jpg', '.jpeg', '.png', '.bmp', '.webp'}
+            image_files = [p for p in train_path.rglob('*') if p.suffix.lower() in extensions]
         
-        # Classes
+        total_images = len(image_files)
+        yield json.dumps({"type": "log", "msg": f"📸 Found {total_images} images. Starting inspection..."}) + "\n"
+
+        # --- CLASSES ---
         classes = config.get('names', {})
-        if isinstance(classes, list): classes = {i: n for i, n in enumerate(classes)}
-        
-        # --- LOGICA DUPLICATI IMMAGINI (Con salvataggio gruppi) ---
-        files_by_size = {}
-        for img in image_files:
-            try:
-                sz = img.stat().st_size
-                if sz not in files_by_size: files_by_size[sz] = []
-                files_by_size[sz].append(img)
-            except: pass
-        
-        duplicate_groups_map = {} # hash -> list of paths
-        duplicate_images_count = 0
+        if isinstance(classes, list):
+            classes = {i: name for i, name in enumerate(classes)}
+        elif isinstance(classes, dict):
+            classes = {int(k): v for k, v in classes.items()}
 
-        potential_duplicates = [files for files in files_by_size.values() if len(files) > 1]
-        
-        for group in potential_duplicates:
-            for f in group:
-                h = AnalyzerService.get_quick_hash(f)
-                if not h: continue
-                if h not in duplicate_groups_map: duplicate_groups_map[h] = []
-                duplicate_groups_map[h].append(str(f))
-
-        # Filtriamo solo quelli che hanno collisioni
-        final_duplicate_groups = [paths for paths in duplicate_groups_map.values() if len(paths) > 1]
-        duplicate_images_count = sum(len(g) - 1 for g in final_duplicate_groups)
-
-        # --- LOGICA LABELS (Standard) ---
+        # --- ANALYSIS LOOP ---
         class_counts = Counter()
         duplicate_labels_count = Counter()
         total_labels = 0
         background_images = 0
         box_sizes = Counter({'Small': 0, 'Medium': 0, 'Large': 0})
+        duplicate_images_count = 0
+        duplicate_groups = []
+
+        # 1. Image Duplicates (Smart Hash)
+        files_by_size = {}
         
-        for img_file in image_files:
-            # Trova label
+        # Phase 1: Hashing
+        for i, img in enumerate(image_files):
+            try:
+                sz = img.stat().st_size
+                if sz not in files_by_size: files_by_size[sz] = []
+                files_by_size[sz].append(img)
+            except: pass
+            
+            # Update progress every 50 images
+            if i % 50 == 0:
+                yield json.dumps({
+                    "type": "progress",
+                    "current": i,
+                    "total": total_images * 2, # Phase 1 + Phase 2
+                    "percent": round((i / (total_images * 2)) * 100, 1),
+                    "log": f"Indexing: {img.name}"
+                }) + "\n"
+
+        potential_duplicates = [files for files in files_by_size.values() if len(files) > 1]
+        
+        if potential_duplicates:
+            yield json.dumps({"type": "log", "msg": f"🕵️ Checking {len(potential_duplicates)} suspicious groups..."}) + "\n"
+            
+            for group in potential_duplicates:
+                group_hashes = {} # hash -> [paths]
+                for f in group:
+                    h = AnalyzerService.get_quick_hash(f)
+                    if h not in group_hashes: group_hashes[h] = []
+                    group_hashes[h].append(str(f))
+                
+                # Filter actual duplicates
+                for h, paths in group_hashes.items():
+                    if len(paths) > 1:
+                        duplicate_images_count += (len(paths) - 1)
+                        duplicate_groups.append(paths)
+
+        # Phase 2: Labels
+        yield json.dumps({"type": "log", "msg": "📝 Analyzing annotations..."}) + "\n"
+        
+        processed_base = total_images 
+        
+        for i, img_file in enumerate(image_files):
+            # Resolve Label Path
             label_file = None
             potential = img_file.with_suffix('.txt')
             if potential.exists(): label_file = potential
@@ -117,135 +166,85 @@ class AnalyzerService:
             if label_file:
                 try:
                     with open(label_file, 'r') as f:
-                        lines = [l.strip() for l in f.readlines() if l.strip()]
-                        if not lines:
+                        content = f.read()
+                        if not content.strip():
                             background_images += 1
-                            continue
-                        
-                        seen_lines = set()
-                        valid_file = False
-                        for line in lines:
-                            if line in seen_lines:
-                                try:
-                                    c_name = classes.get(int(float(line.split()[0])), "unknown")
-                                    duplicate_labels_count[c_name] += 1
-                                except: pass
-                                continue
-                            seen_lines.add(line)
+                        else:
+                            lines = content.splitlines()
+                            seen_lines = set()
+                            has_valid = False
                             
-                            parts = line.split()
-                            if len(parts) >= 5:
-                                total_labels += 1
-                                valid_file = True
-                                class_counts[int(float(parts[0]))] += 1
-                                area = float(parts[3]) * float(parts[4])
-                                if area < 0.003: box_sizes['Small']+=1
-                                elif area < 0.03: box_sizes['Medium']+=1
-                                else: box_sizes['Large']+=1
-                        
-                        if not valid_file: background_images += 1
-                except: background_images += 1
+                            for line in lines:
+                                line = line.strip()
+                                if not line: continue
+                                
+                                # Check Duplicate Labels
+                                if line in seen_lines:
+                                    try:
+                                        c_id = int(float(line.split()[0]))
+                                        c_name = classes.get(c_id, str(c_id))
+                                        duplicate_labels_count[c_name] += 1
+                                    except: pass
+                                    continue
+                                
+                                seen_lines.add(line)
+                                
+                                parts = line.split()
+                                if len(parts) >= 5:
+                                    try:
+                                        class_id = int(float(parts[0]))
+                                        w = float(parts[3])
+                                        h = float(parts[4])
+                                        
+                                        class_counts[class_id] += 1
+                                        total_labels += 1
+                                        has_valid = True
+                                        
+                                        area = w * h
+                                        if area < 0.003: box_sizes['Small'] += 1
+                                        elif area < 0.03: box_sizes['Medium'] += 1
+                                        else: box_sizes['Large'] += 1
+                                    except ValueError: continue
+                            
+                            if not has_valid: background_images += 1
+                except Exception:
+                    background_images += 1
             else:
                 background_images += 1
+            
+            # Progress Update
+            if i % 20 == 0:
+                current_total = i + processed_base
+                yield json.dumps({
+                    "type": "progress",
+                    "current": current_total,
+                    "total": total_images * 2,
+                    "percent": round((current_total / (total_images * 2)) * 100, 1),
+                    "log": f"Reading labels for {img_file.name}"
+                }) + "\n"
 
-        return DatasetStats(
+        # Final Stats Construction
+        avg_labels = total_labels / total_images if total_images > 0 else 0
+        class_dist = {classes.get(cid, f"class_{cid}"): count for cid, count in class_counts.items()}
+
+        final_stats = DatasetStats(
             dataset_id=dataset_id,
             name=yaml_path.stem,
-            total_images=len(image_files),
+            total_images=total_images,
             total_labels=total_labels,
             classes=classes,
-            class_distribution={classes.get(k,str(k)):v for k,v in class_counts.items()},
+            class_distribution=class_dist,
             image_paths=[str(p) for p in image_files[:20]],
             path=str(yaml_path),
-            avg_labels_per_image=round(total_labels/len(image_files), 2) if image_files else 0,
+            avg_labels_per_image=round(avg_labels, 2),
             background_images=background_images,
             box_size_distribution=dict(box_sizes),
             duplicate_images=duplicate_images_count,
             duplicate_labels=dict(duplicate_labels_count),
-            duplicate_groups=final_duplicate_groups # <-- IMPORTANTE
+            duplicate_groups=duplicate_groups
         )
 
-    @staticmethod
-    def cleanup_dataset(request) -> dict:
-        """
-        Esegue la pulizia fisica dei file.
-        """
-        deleted_images = 0
-        fixed_labels = 0
-        errors = []
-
-        # 1. Pulizia Immagini Duplicate
-        if request.clean_images and request.duplicate_groups:
-            print("🧹 Cleaning duplicate images...")
-            for group in request.duplicate_groups:
-                # Mantieni il primo, cancella gli altri
-                to_delete = group[1:] 
-                for file_path in to_delete:
-                    try:
-                        p = Path(file_path)
-                        if p.exists():
-                            p.unlink() # Cancella immagine
-                            deleted_images += 1
-                            
-                            # Cancella anche la label associata se esiste
-                            # (Per evitare di lasciare label orfane)
-                            # Cerchiamo la label con la stessa logica (semplificata: stesso nome, estensione .txt)
-                            # Se la struttura è complessa, potremmo mancarne qualcuna, ma è sicuro.
-                            
-                            # Opzione A: Label accanto
-                            txt_p = p.with_suffix('.txt')
-                            if txt_p.exists(): txt_p.unlink()
-                            
-                            # Opzione B: Cartella labels parallela
-                            try:
-                                parts = list(p.parts)
-                                if 'images' in parts:
-                                    idx = len(parts) - 1 - parts[::-1].index('images')
-                                    parts[idx] = 'labels'
-                                    txt_p_yolo = Path(*parts).with_suffix('.txt')
-                                    if txt_p_yolo.exists(): txt_p_yolo.unlink()
-                            except: pass
-
-                    except Exception as e:
-                        errors.append(f"Err deleting {file_path}: {str(e)}")
-
-        # 2. Pulizia Label Duplicate (Intra-file)
-        if request.clean_labels:
-            print("🧹 Cleaning duplicate labels inside files...")
-            # Riscansioniamo velocemente tutti i txt nella cartella dataset
-            # Nota: Per semplicità e velocità, qui ci fidiamo che l'utente abbia appena fatto l'analisi
-            # In un sistema perfetto, ripasseremmo tutti i file.
-            # Qui implementiamo una logica ricorsiva sulla cartella root del dataset
-            
-            root = Path(request.dataset_path).parent
-            # Cerca tutti i .txt
-            txt_files = list(root.rglob('*.txt'))
-            
-            for txt in txt_files:
-                try:
-                    with open(txt, 'r') as f:
-                        lines = [l.strip() for l in f.readlines() if l.strip()]
-                    
-                    unique_lines = []
-                    seen = set()
-                    changed = False
-                    
-                    for line in lines:
-                        if line not in seen:
-                            seen.add(line)
-                            unique_lines.append(line)
-                        else:
-                            changed = True
-                            fixed_labels += 1
-                    
-                    if changed:
-                        with open(txt, 'w') as f:
-                            f.write('\n'.join(unique_lines) + '\n')
-                            
-                except Exception: pass
-
-        return {
-            "deleted_images": deleted_images,
-            "fixed_labels": fixed_labels,
-            "errors": errors
-        }
+        yield json.dumps({
+            "type": "complete",
+            "data": final_stats.dict()
+        }) + "\n"
