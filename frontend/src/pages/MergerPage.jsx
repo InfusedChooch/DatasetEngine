@@ -1,6 +1,6 @@
-// frontend/src/pages/MergerPage.jsx
 import { useState, useRef, useEffect } from 'react'
 import { api } from '../lib/api'
+import { createPortal } from 'react-dom' // IMPORTANTE: Importato createPortal
 import { 
     GitMerge, FolderOpen, Plus, ArrowRight, Trash2, 
     AlertCircle, CheckCircle2, Database, Settings2, X, Terminal, Target
@@ -22,14 +22,18 @@ export default function MergerPage() {
     const [mappings, setMappings] = useState({})
     
     // UI States
-    const [loading, setLoading] = useState(false)
-    const [merging, setMerging] = useState(false)
+    const [loading, setLoading] = useState(false) // Loader semplice per caricamento file
+    const [merging, setMerging] = useState(false) // Loader WOW per il merge
+    
+    // PROGRESS STATE
     const [progress, setProgress] = useState({ current: 0, total: 0, percent: 0 })
     const [logs, setLogs] = useState([])
     const logsEndRef = useRef(null)
+
     const [result, setResult] = useState(null)
     const [error, setError] = useState(null)
     const [notification, setNotification] = useState(null)
+    
     const [showClassModal, setShowClassModal] = useState(false)
     const [newClassName, setNewClassName] = useState('')
 
@@ -75,18 +79,15 @@ export default function MergerPage() {
                 const initialTargets = Object.values(info.classes).map((name, i) => ({ id: i, name }))
                 setTargetClasses(initialTargets)
                 
-                // Init Split
                 if(info.total_images > 0) {
                     const s = info.split_stats
                     const tr = Math.round((s.train / info.total_images) * 100)
                     const val = Math.round((s.val / info.total_images) * 100)
                     const te = 100 - tr - val
-                    // Fix rounding errors
                     const diff = 100 - (tr + val + te)
                     setSplit({ train: tr, val: val, test: te + diff })
                 }
                 
-                // Auto-map Master
                 const masterMap = {}
                 Object.keys(info.classes).forEach(k => {
                     masterMap[k] = { action: 'map', targetId: parseInt(k) }
@@ -137,7 +138,6 @@ export default function MergerPage() {
         let v = parseInt(value);
         if (isNaN(v)) v = 0;
         v = Math.max(0, Math.min(100, v));
-        
         setSplit(prev => ({ ...prev, [field]: v }))
     }
 
@@ -325,103 +325,86 @@ export default function MergerPage() {
                 </div>
             </div>
 
-            {/* STEP 2: MAPPING MATRIX */}
+            {/* MAPPING & CONFIG SECTIONS */}
             {master && (
-                <div className="bg-slate-800/60 backdrop-blur border border-slate-700 rounded-xl p-6 animate-in fade-in slide-in-from-bottom-4">
-                    <div className="flex justify-between items-center mb-6">
-                        <h3 className="text-xl font-bold text-white flex items-center gap-2"><Settings2 /> Class Mapping Matrix</h3>
-                        <button onClick={() => setShowClassModal(true)} className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-bold flex items-center gap-2">
-                            <Plus size={16}/> New Output Class
-                        </button>
-                    </div>
-
-                    {/* NEW: Final Output Classes Preview */}
-                    <div className="mb-6 bg-slate-900/30 p-4 rounded-lg border border-slate-700">
-                        <div className="text-xs text-slate-400 uppercase font-bold mb-2 flex items-center gap-2"><Target size={14}/> Final Output Classes (Targets)</div>
-                        <div className="flex flex-wrap gap-2">
-                            {targetClasses.map(t => (
-                                <span key={t.id} className="px-3 py-1 bg-purple-900/50 border border-purple-500/30 text-purple-200 text-xs rounded-full font-mono">
-                                    {t.id}: {t.name}
-                                </span>
-                            ))}
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        <div>
-                            <h4 className="text-sm font-bold text-purple-400 uppercase mb-3">Source: {master.name} (Master)</h4>
-                            <div className="space-y-1">{Object.entries(master.classes).map(([id, name]) => renderClassRow(0, id, name))}</div>
-                        </div>
-                        <div className="space-y-6">
-                            {clients.map((c, i) => (
-                                <div key={i}>
-                                    <h4 className="text-sm font-bold text-pink-400 uppercase mb-3">Source: {c.name}</h4>
-                                    <div className="space-y-1">{Object.entries(c.classes).map(([id, name]) => renderClassRow(i+1, id, name))}</div>
-                                </div>
-                            ))}
-                            {clients.length === 0 && <div className="text-slate-500 italic text-sm p-4 text-center border border-dashed border-slate-700 rounded">Add client datasets to see mapping options...</div>}
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* STEP 3: CONFIG & EXECUTE */}
-            {master && (
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-8">
-                    
-                    {/* SPLIT SLIDERS (FIXED) */}
-                    <div className="lg:col-span-2 bg-slate-800/60 backdrop-blur border border-slate-700 rounded-xl p-6">
-                        <h3 className="text-lg font-bold text-white mb-4">Re-Split Strategy</h3>
-                        <div className="space-y-6">
-                            <div>
-                                <div className="flex justify-between text-sm mb-2">
-                                    <span className="text-emerald-400 font-bold">Train: {split.train}%</span>
-                                    <span className="text-blue-400 font-bold">Val: {split.val}%</span>
-                                    <span className="text-amber-400 font-bold">Test: {split.test}%</span>
-                                </div>
-                                <div className={`h-4 bg-slate-700 rounded-full flex overflow-hidden border ${!isSplitValid ? 'border-red-500' : 'border-transparent'}`}>
-                                    <div style={{width: `${split.train}%`}} className="bg-emerald-500 transition-all duration-300"/>
-                                    <div style={{width: `${split.val}%`}} className="bg-blue-500 transition-all duration-300"/>
-                                    <div style={{width: `${split.test}%`}} className="bg-amber-500 transition-all duration-300"/>
-                                </div>
-                                {!isSplitValid && <div className="text-red-400 text-xs font-bold mt-1 text-right">Total: {totalSplit}% (Must be 100%)</div>}
-                            </div>
-                            
-                            <div className="grid grid-cols-3 gap-4">
-                                <label className="block">
-                                    <span className="text-xs text-slate-400">Train %</span>
-                                    <input type="number" min="0" max="100" value={split.train} onChange={e => handleSplitChange('train', e.target.value)} className="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1 text-white outline-none focus:border-purple-500"/>
-                                </label>
-                                <label className="block">
-                                    <span className="text-xs text-slate-400">Val %</span>
-                                    <input type="number" min="0" max="100" value={split.val} onChange={e => handleSplitChange('val', e.target.value)} className="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1 text-white outline-none focus:border-purple-500"/>
-                                </label>
-                                <label className="block">
-                                    <span className="text-xs text-slate-400">Test %</span>
-                                    <input type="number" min="0" max="100" value={split.test} onChange={e => handleSplitChange('test', e.target.value)} className="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1 text-white outline-none focus:border-purple-500"/>
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* EXECUTE */}
-                    <div className="bg-slate-800/60 backdrop-blur border border-slate-700 rounded-xl p-6 flex flex-col justify-between">
-                        <div>
-                            <h3 className="text-lg font-bold text-white mb-2">Output Location</h3>
-                            <button onClick={handleBrowseOutput} className="w-full py-2 bg-slate-700 hover:bg-slate-600 rounded border border-slate-600 text-xs text-slate-300 truncate mb-4">
-                                {outputDir || "Select Folder..."}
+                <>
+                    {/* MAPPING */}
+                    <div className="bg-slate-800/60 backdrop-blur border border-slate-700 rounded-xl p-6 animate-in fade-in slide-in-from-bottom-4">
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-xl font-bold text-white flex items-center gap-2"><Settings2 /> Class Mapping Matrix</h3>
+                            <button onClick={() => setShowClassModal(true)} className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-bold flex items-center gap-2">
+                                <Plus size={16}/> New Output Class
                             </button>
                         </div>
 
-                        <button 
-                            onClick={handleMerge}
-                            disabled={merging || !outputDir || !isSplitValid}
-                            className="w-full py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-black text-lg rounded-xl shadow-lg shadow-purple-500/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all"
-                        >
-                            <GitMerge /> {merging ? 'MERGING...' : 'EXECUTE MERGE'}
-                        </button>
+                        {/* NEW: Final Output Classes Preview */}
+                        <div className="mb-6 bg-slate-900/30 p-4 rounded-lg border border-slate-700">
+                            <div className="text-xs text-slate-400 uppercase font-bold mb-2 flex items-center gap-2"><Target size={14}/> Final Output Classes (Targets)</div>
+                            <div className="flex flex-wrap gap-2">
+                                {targetClasses.map(t => (
+                                    <span key={t.id} className="px-3 py-1 bg-purple-900/50 border border-purple-500/30 text-purple-200 text-xs rounded-full font-mono">
+                                        {t.id}: {t.name}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            <div>
+                                <h4 className="text-sm font-bold text-purple-400 uppercase mb-3">Source: {master.name} (Master)</h4>
+                                <div className="space-y-1">{Object.entries(master.classes).map(([id, name]) => renderClassRow(0, id, name))}</div>
+                            </div>
+                            <div className="space-y-6">
+                                {clients.map((c, i) => (
+                                    <div key={i}>
+                                        <h4 className="text-sm font-bold text-pink-400 uppercase mb-3">Source: {c.name}</h4>
+                                        <div className="space-y-1">{Object.entries(c.classes).map(([id, name]) => renderClassRow(i+1, id, name))}</div>
+                                    </div>
+                                ))}
+                                {clients.length === 0 && <div className="text-slate-500 italic text-sm p-4 text-center border border-dashed border-slate-700 rounded">Add client datasets to see mapping options...</div>}
+                            </div>
+                        </div>
                     </div>
-                </div>
+
+                    {/* CONFIG & EXECUTE */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-8">
+                        <div className="lg:col-span-2 bg-slate-800/60 backdrop-blur border border-slate-700 rounded-xl p-6">
+                            <h3 className="text-lg font-bold text-white mb-4">Re-Split Strategy</h3>
+                            <div className="space-y-6">
+                                <div>
+                                    <div className="flex justify-between text-sm mb-2">
+                                        <span className="text-emerald-400 font-bold">Train: {split.train}%</span>
+                                        <span className="text-blue-400 font-bold">Val: {split.val}%</span>
+                                        <span className="text-amber-400 font-bold">Test: {split.test}%</span>
+                                    </div>
+                                    <div className={`h-4 bg-slate-700 rounded-full flex overflow-hidden border ${!isSplitValid ? 'border-red-500' : 'border-transparent'}`}>
+                                        <div style={{width: `${split.train}%`}} className="bg-emerald-500 transition-all duration-300"/>
+                                        <div style={{width: `${split.val}%`}} className="bg-blue-500 transition-all duration-300"/>
+                                        <div style={{width: `${split.test}%`}} className="bg-amber-500 transition-all duration-300"/>
+                                    </div>
+                                    {!isSplitValid && <div className="text-red-400 text-xs font-bold mt-1 text-right">Total: {totalSplit}% (Must be 100%)</div>}
+                                </div>
+                                <div className="grid grid-cols-3 gap-4">
+                                    <label className="block"><span className="text-xs text-slate-400">Train %</span><input type="number" min="0" max="100" value={split.train} onChange={e => handleSplitChange('train', e.target.value)} className="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1 text-white outline-none focus:border-purple-500"/></label>
+                                    <label className="block"><span className="text-xs text-slate-400">Val %</span><input type="number" min="0" max="100" value={split.val} onChange={e => handleSplitChange('val', e.target.value)} className="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1 text-white outline-none focus:border-purple-500"/></label>
+                                    <label className="block"><span className="text-xs text-slate-400">Test %</span><input type="number" min="0" max="100" value={split.test} onChange={e => handleSplitChange('test', e.target.value)} className="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1 text-white outline-none focus:border-purple-500"/></label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-slate-800/60 backdrop-blur border border-slate-700 rounded-xl p-6 flex flex-col justify-between">
+                            <div>
+                                <h3 className="text-lg font-bold text-white mb-2">Output Location</h3>
+                                <button onClick={handleBrowseOutput} className="w-full py-2 bg-slate-700 hover:bg-slate-600 rounded border border-slate-600 text-xs text-slate-300 truncate mb-4">
+                                    {outputDir || "Select Folder..."}
+                                </button>
+                            </div>
+                            <button onClick={handleMerge} disabled={merging || !outputDir || !isSplitValid} className="w-full py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-black text-lg rounded-xl shadow-lg shadow-purple-500/20 disabled:opacity-50 flex items-center justify-center gap-2 transition-all">
+                                <GitMerge /> {merging ? 'MERGING...' : 'EXECUTE MERGE'}
+                            </button>
+                        </div>
+                    </div>
+                </>
             )}
 
             {/* CLASS MODAL */}
@@ -435,9 +418,12 @@ export default function MergerPage() {
                 </div>
             )}
 
-            {/* MERGE PROGRESS OVERLAY */}
-            {merging && (
-                <div className="fixed inset-0 z-[9999] bg-slate-900/95 backdrop-blur-xl flex flex-col items-center justify-center p-8">
+            {/* MERGE PROGRESS OVERLAY - USING PORTAL FOR FULL SCREEN */}
+            {merging && createPortal(
+                <div 
+                    className="fixed inset-0 w-full h-full z-[99999] bg-slate-900/95 backdrop-blur-xl flex flex-col items-center justify-center p-8"
+                    style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
+                >
                     <div className="w-full max-w-2xl bg-slate-800 border border-slate-700 rounded-2xl p-8 shadow-2xl">
                         <div className="flex items-center gap-4 mb-6">
                             <div className="w-12 h-12 border-4 border-purple-500/30 border-t-purple-500 rounded-full animate-spin"/>
@@ -462,7 +448,8 @@ export default function MergerPage() {
                             <div ref={logsEndRef} />
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
             {/* RESULT SUCCESS MODAL */}
