@@ -20,7 +20,7 @@ class ExporterService:
         
         annotations_file = project_path / "annotations.json"
         if not annotations_file.exists():
-            raise ValueError("No annotations found. Please annotate some frames first.")
+            raise ValueError("No annotations found. Please annotate or flag some frames first.")
         
         with open(annotations_file) as f:
             annotations = json.load(f)
@@ -31,7 +31,7 @@ class ExporterService:
             frames_to_export = [a for a in annotations if a.get("include_in_training", False)]
         
         if not frames_to_export:
-            raise ValueError("No frames marked for training. Mark some frames first.")
+            raise ValueError("No frames marked for training. Please include some frames first.")
         
         exported_count = 0
         for annotation in frames_to_export:
@@ -41,21 +41,24 @@ class ExporterService:
             if not src_frame.exists():
                 continue
             
+            # Using 6-digit padding for consistency
             dst_img = images_out / f"img_{exported_count:06d}.jpg"
             shutil.copy(src_frame, dst_img)
             
             dst_lbl = labels_out / f"img_{exported_count:06d}.txt"
             with open(dst_lbl, "w") as f:
                 for box in annotation["boxes"]:
+                    # YOLO format: class x_center y_center width height (normalized)
                     line = f"{box['class_id']} {box['x_center']:.6f} {box['y_center']:.6f} {box['width']:.6f} {box['height']:.6f}\n"
                     f.write(line)
             
             exported_count += 1
         
+        # Generate data.yaml for ultralytics training
         yaml_data = {
             "path": str(output_path.absolute()),
             "train": "images/train",
-            "val": "images/train",
+            "val": "images/train", # Usually you'd split this later, but pointing to train is fine for output
             "names": {i: name for i, name in enumerate(project["class_names"])}
         }
         
