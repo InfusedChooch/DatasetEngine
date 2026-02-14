@@ -99,8 +99,14 @@ async def bulk_mark(project_id: str, frame_ids: list[int], include: bool = True)
 
 @router.post("/export")
 async def export_dataset(request: ExportRequest):
-    output_path, count = exporter_service.export_dataset(request)
-    return {"success": True, "output_path": str(output_path), "exported_frames": count}
+    try:
+        output_path, count = exporter_service.export_dataset(request)
+        return {"success": True, "output_path": str(output_path), "exported_frames": count}
+    except ValueError as e:
+        # Se non ci sono frame selezionati, manda un errore 400 pulito al Frontend
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Export failed: {str(e)}")
 
 @router.get("/list")
 async def list_projects():

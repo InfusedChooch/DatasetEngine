@@ -8,7 +8,9 @@ from config import settings
 class ExporterService:
     def export_dataset(self, request: ExportRequest) -> tuple[Path, int]:
         project_path = settings.get_project_path(request.project_id)
-        output_path = settings.EXPORTS_PATH / request.output_name
+        
+        # Ora request.output_name contiene il PERCORSO ASSOLUTO scelto dall'utente nel frontend
+        output_path = Path(request.output_name)
         
         images_out = output_path / "images" / "train"
         labels_out = output_path / "labels" / "train"
@@ -41,7 +43,6 @@ class ExporterService:
             if not src_frame.exists():
                 continue
             
-            # Using 6-digit padding for consistency
             dst_img = images_out / f"img_{exported_count:06d}.jpg"
             shutil.copy(src_frame, dst_img)
             
@@ -58,7 +59,7 @@ class ExporterService:
         yaml_data = {
             "path": str(output_path.absolute()),
             "train": "images/train",
-            "val": "images/train", # Usually you'd split this later, but pointing to train is fine for output
+            "val": "images/train", 
             "names": {i: name for i, name in enumerate(project["class_names"])}
         }
         
