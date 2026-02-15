@@ -26,7 +26,6 @@ class InferenceService:
         source_p = Path(source_path)
         frame_files = []
 
-        # 1. ESTREZIONE FRAME (Video o Cartella)
         if source_p.is_file() and source_p.suffix.lower() in ['.mp4', '.avi', '.mov', '.mkv']:
             yield json.dumps({"type": "log", "msg": "🎞️ Extracting frames from video..."}) + "\n"
             cap = cv2.VideoCapture(str(source_p))
@@ -60,14 +59,12 @@ class InferenceService:
                 if i % 10 == 0:
                     yield json.dumps({"type": "progress", "current": i, "total": total_imgs, "percent": int((i/total_imgs)*50), "log": f"Copied {len(frame_files)} images"}) + "\n"
         
-        # 2. INFERENZA
         yield json.dumps({"type": "log", "msg": "🧠 Running YOLO Inference on all frames..."}) + "\n"
         results = []
         total_frames = len(frame_files)
         
         for i, frame_file in enumerate(frame_files):
             frame_id = i
-            # Confidenza fissa a 0.1 per salvare tutte le detection possibili, l'utente filtrerà dopo
             predictions = model(str(frame_file), conf=0.1, verbose=False)[0] 
             
             boxes = []
@@ -88,7 +85,6 @@ class InferenceService:
             if i % 5 == 0 or i == total_frames - 1:
                 yield json.dumps({"type": "progress", "current": i, "total": total_frames, "percent": 50 + int((i/total_frames)*50), "log": f"Inference: Frame {i}/{total_frames}"}) + "\n"
 
-        # 3. SALVATAGGIO
         with open(project_path / "inference.json", "w") as f:
             json.dump(results, f, indent=2)
 
@@ -115,12 +111,25 @@ class InferenceService:
         project_path = settings.get_project_path(project_id)
         with open(project_path / "inference.json") as f:
             frames = json.load(f)
+            
+        # NUOVO: Conta i frame inclusi nel training
+        included_count = 0
+        annotations_file = project_path / "annotations.json"
+        if annotations_file.exists():
+            with open(annotations_file) as f:
+                annotations = json.load(f)
+                included_count = sum(1 for a in annotations if a.get("include_in_training", False))
+                
         total = len(frames)
         no_detection = len([f for f in frames if len(f["boxes"]) == 0])
         low_conf = len([f for f in frames if any(b["confidence"] < 0.50 for b in f["boxes"])])
         high_conf = len([f for f in frames if len(f["boxes"]) > 0 and all(b["confidence"] >= 0.50 for b in f["boxes"])])
+        
         return {
-            "total_frames": total, "no_detection": no_detection,
-            "low_confidence": low_conf, "high_confidence": high_conf,
-            "detection_rate": ((total - no_detection) / total * 100) if total > 0 else 0
+            "total_frames": total,
+            "no_detection": no_detection,
+            "low_confidence": low_conf,
+            "high_confidence": high_conf,
+            "detection_rate": ((total - no_detection) / total * 100) if total > 0 else 0,
+            "included_frames": included_count # <-- Aggiunto alle statistiche
         }
