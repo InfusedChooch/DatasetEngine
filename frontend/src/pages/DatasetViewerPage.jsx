@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { FolderOpen, Filter, Layers, SquareSquare, Maximize, Target, RotateCcw, X, ZoomIn, Info, MousePointer2, Image as ImageIcon } from 'lucide-react'
+import { FolderOpen, Filter, Layers, SquareSquare, Maximize, Target, RotateCcw, X, ZoomIn, Info, MousePointer2, Image as ImageIcon, Eye, EyeOff } from 'lucide-react'
 import { CLASS_COLORS } from './InferenceViewer'
 import { createPortal } from 'react-dom'
 
@@ -24,13 +24,13 @@ export default function DatasetViewerPage() {
   // Modal State
   const [selectedImage, setSelectedImage] = useState(null)
 
-  // Intersection Observer per lo scroll infinito (Migliorato per fluidità)
+  // Intersection Observer per lo scroll infinito
   const observer = useRef()
   const lastImageElementRef = useCallback(node => {
     if (loading) return
     if (observer.current) observer.current.disconnect()
     
-    // Aggiunto rootMargin: inizia a caricare 500px PRIMA che l'utente arrivi alla fine
+    // Inizia a caricare 500px PRIMA della fine per uno scroll perfettamente fluido
     observer.current = new IntersectionObserver(entries => {
       if (entries[0].isIntersecting && hasMore) setPage(prev => prev + 1)
     }, { rootMargin: '500px' })
@@ -56,7 +56,7 @@ export default function DatasetViewerPage() {
           })
           const data = await res.json()
           setDatasetInfo(data)
-          resetFilters(false) // Reset filtri ma non cancellare yaml
+          resetFilters(false)
           await fetchImages(1, true)
       } catch(e) { alert("Failed to load dataset") }
       setIsInitializing(false) 
@@ -97,7 +97,6 @@ export default function DatasetViewerPage() {
       if(page > 1) fetchImages(page, false)
   }, [page])
 
-
   const toggleSplit = (s) => {
       if(s === 'all') setSplits(['all'])
       else {
@@ -126,8 +125,28 @@ export default function DatasetViewerPage() {
   return (
     <div className="flex gap-6 h-[calc(100vh-100px)]">
         
+      {/* CSS INIETTATO PER LA SCROLLBAR APPLE-STYLE */}
+      <style>{`
+        .modern-scrollbar::-webkit-scrollbar {
+          width: 10px;
+          height: 10px;
+        }
+        .modern-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .modern-scrollbar::-webkit-scrollbar-thumb {
+          background-color: rgba(71, 85, 105, 0.4); 
+          border-radius: 10px;
+          border: 3px solid transparent;
+          background-clip: padding-box;
+        }
+        .modern-scrollbar::-webkit-scrollbar-thumb:hover {
+          background-color: rgba(100, 116, 139, 0.8);
+        }
+      `}</style>
+
       {/* SIDEBAR FILTRI */}
-      <div className="w-80 flex flex-col gap-5 bg-slate-900/50 border border-slate-800 rounded-2xl p-5 overflow-y-auto custom-scrollbar shadow-inner">
+      <div className="w-80 flex flex-col gap-5 bg-slate-900/50 border border-slate-800 rounded-2xl p-5 overflow-y-auto modern-scrollbar shadow-inner">
           
           <div className="mb-2">
               <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 block">1. Load Dataset</label>
@@ -158,44 +177,42 @@ export default function DatasetViewerPage() {
                   </div>
               </div>
 
-              {/* BOX COUNTS */}
+              {/* BOX COUNTS - MODERN SLIDERS (WIDER INPUTS) */}
               <div className="space-y-3">
                   <div className="flex items-center justify-between">
                       <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2"><SquareSquare size={14}/> Objects Count</label>
                       <span className="text-[10px] text-slate-500 bg-slate-900 px-2 py-0.5 rounded-md">100 = Any</span>
                   </div>
-                  <div className="flex items-center bg-slate-900 p-1 rounded-xl border border-slate-700 focus-within:border-blue-500 transition-colors">
-                      <div className="flex-1 flex flex-col px-3 border-r border-slate-800">
-                          <span className="text-[10px] text-slate-500 font-bold uppercase">Min</span>
-                          <input type="number" min="0" value={boxRange.min} onChange={e => setBoxRange({...boxRange, min: parseInt(e.target.value)||0})} className="w-full bg-transparent text-white font-mono text-sm outline-none" />
+                  <div className="bg-slate-900/50 p-3 rounded-xl border border-slate-800 space-y-3">
+                      <div className="flex items-center gap-3">
+                          <span className="text-[10px] font-bold text-slate-500 uppercase w-6">Min</span>
+                          <input type="range" min="0" max="100" value={boxRange.min} onChange={e => setBoxRange({...boxRange, min: parseInt(e.target.value)})} className="flex-1 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500" />
+                          <input type="text" value={boxRange.min} onChange={e => setBoxRange({...boxRange, min: parseInt(e.target.value.replace(/\D/g,''))||0})} className="w-12 bg-black/50 border border-slate-700 rounded-md py-1 text-center text-xs font-mono text-slate-300 outline-none focus:border-blue-500 transition-colors" />
                       </div>
-                      <div className="flex-1 flex flex-col px-3">
-                          <span className="text-[10px] text-slate-500 font-bold uppercase">Max</span>
-                          <input type="number" min="0" value={boxRange.max} onChange={e => setBoxRange({...boxRange, max: parseInt(e.target.value)||0})} className="w-full bg-transparent text-white font-mono text-sm outline-none" />
+                      <div className="flex items-center gap-3">
+                          <span className="text-[10px] font-bold text-slate-500 uppercase w-6">Max</span>
+                          <input type="range" min="0" max="100" value={boxRange.max} onChange={e => setBoxRange({...boxRange, max: parseInt(e.target.value)})} className="flex-1 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500" />
+                          <input type="text" value={boxRange.max} onChange={e => setBoxRange({...boxRange, max: parseInt(e.target.value.replace(/\D/g,''))||0})} className="w-12 bg-black/50 border border-slate-700 rounded-md py-1 text-center text-xs font-mono text-slate-300 outline-none focus:border-blue-500 transition-colors" />
                       </div>
                   </div>
               </div>
 
-              {/* BOX AREAS */}
+              {/* BOX AREAS - PERFECT MATCH WITH OBJECTS COUNT */}
               <div className="space-y-3">
                   <div className="flex items-center justify-between">
                       <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2"><Maximize size={14}/> Object Area Size</label>
                       <span className="text-[10px] text-slate-500 bg-slate-900 px-2 py-0.5 rounded-md">% of image</span>
                   </div>
-                  <div className="flex items-center bg-slate-900 p-1 rounded-xl border border-slate-700 focus-within:border-blue-500 transition-colors">
-                      <div className="flex-1 flex flex-col px-3 border-r border-slate-800 relative">
-                          <span className="text-[10px] text-slate-500 font-bold uppercase">Min Area</span>
-                          <div className="flex items-center">
-                              <input type="number" min="0" max="100" value={Math.round(areaRange.min*100)} onChange={e => setAreaRange({...areaRange, min: (parseInt(e.target.value)||0)/100})} className="w-full bg-transparent text-white font-mono text-sm outline-none" />
-                              <span className="text-slate-500 text-xs font-mono">%</span>
-                          </div>
+                  <div className="bg-slate-900/50 p-3 rounded-xl border border-slate-800 space-y-3">
+                      <div className="flex items-center gap-3">
+                          <span className="text-[10px] font-bold text-slate-500 uppercase w-6">Min</span>
+                          <input type="range" min="0" max="100" value={Math.round(areaRange.min*100)} onChange={e => setAreaRange({...areaRange, min: (parseInt(e.target.value)||0)/100})} className="flex-1 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-purple-500" />
+                          <input type="text" value={Math.round(areaRange.min*100)} onChange={e => setAreaRange({...areaRange, min: (parseInt(e.target.value.replace(/\D/g,''))||0)/100})} className="w-12 bg-black/50 border border-slate-700 rounded-md py-1 text-center text-xs font-mono text-slate-300 outline-none focus:border-purple-500 transition-colors" />
                       </div>
-                      <div className="flex-1 flex flex-col px-3 relative">
-                          <span className="text-[10px] text-slate-500 font-bold uppercase">Max Area</span>
-                          <div className="flex items-center">
-                              <input type="number" min="0" max="100" value={Math.round(areaRange.max*100)} onChange={e => setAreaRange({...areaRange, max: (parseInt(e.target.value)||0)/100})} className="w-full bg-transparent text-white font-mono text-sm outline-none" />
-                              <span className="text-slate-500 text-xs font-mono">%</span>
-                          </div>
+                      <div className="flex items-center gap-3">
+                          <span className="text-[10px] font-bold text-slate-500 uppercase w-6">Max</span>
+                          <input type="range" min="0" max="100" value={Math.round(areaRange.max*100)} onChange={e => setAreaRange({...areaRange, max: (parseInt(e.target.value)||0)/100})} className="flex-1 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-purple-500" />
+                          <input type="text" value={Math.round(areaRange.max*100)} onChange={e => setAreaRange({...areaRange, max: (parseInt(e.target.value.replace(/\D/g,''))||0)/100})} className="w-12 bg-black/50 border border-slate-700 rounded-md py-1 text-center text-xs font-mono text-slate-300 outline-none focus:border-purple-500 transition-colors" />
                       </div>
                   </div>
               </div>
@@ -235,8 +252,8 @@ export default function DatasetViewerPage() {
               </div>
           </div>
 
-          {/* Sostituito columns-* (Masonry) con una CSS Grid vera per fluidità assoluta */}
-          <div className="flex-1 overflow-y-auto p-6 custom-scrollbar relative">
+          {/* OVERFLOW-X-HIDDEN per bloccare lo scroll laterale e MODERN-SCROLLBAR per renderla bellissima */}
+          <div className="flex-1 overflow-y-auto overflow-x-hidden p-6 modern-scrollbar relative">
               {!datasetInfo && !isInitializing ? (
                   <div className="h-full flex flex-col items-center justify-center text-slate-500">
                       <div className="w-24 h-24 bg-slate-800 rounded-full flex items-center justify-center mb-6 shadow-inner border border-slate-700">
@@ -299,14 +316,11 @@ function ImageCard({ img, datasetInfo, innerRef, onClick }) {
     const src = `http://localhost:8000/api/viewer/image?path=${encodePath}`;
 
     return (
-        // Il contenitore principale NON ha overflow-hidden così il tooltip può uscire
         <div ref={innerRef} className="relative group cursor-pointer" onClick={onClick}>
             
-            {/* Box Immagine: si solleva e si ingrandisce al passaggio del mouse */}
             <div className="relative w-full aspect-[4/3] rounded-xl overflow-hidden bg-black border-2 border-slate-800 shadow-sm transition-all duration-300 group-hover:scale-110 group-hover:z-50 group-hover:border-blue-500 group-hover:shadow-2xl group-hover:shadow-blue-500/30">
                 <img src={src} loading="lazy" className="w-full h-full object-cover transition-all duration-500 group-hover:brightness-75" />
                 
-                {/* Bounding Boxes */}
                 {img.boxes.map((box, i) => {
                     const color = CLASS_COLORS[box.c % CLASS_COLORS.length];
                     return (
@@ -318,7 +332,6 @@ function ImageCard({ img, datasetInfo, innerRef, onClick }) {
                     )
                 })}
 
-                {/* Icona Zoom (visibile solo in hover) */}
                 <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
                     <div className="bg-black/60 backdrop-blur-sm p-3 rounded-full text-white shadow-lg">
                         <ZoomIn size={24} />
@@ -326,7 +339,6 @@ function ImageCard({ img, datasetInfo, innerRef, onClick }) {
                 </div>
             </div>
 
-            {/* Tooltip Esterno Fluttuante (Apple-style) */}
             <div className="absolute left-1/2 -translate-x-1/2 top-full mt-4 w-max max-w-[200px] opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none z-[60] group-hover:translate-y-0 translate-y-2">
                 <div className="bg-slate-900/90 backdrop-blur-xl border border-slate-700 p-3 rounded-xl shadow-2xl flex flex-col items-center">
                     <span className="bg-slate-800 text-white text-[10px] font-black px-2 py-0.5 rounded border border-slate-600 uppercase tracking-wider mb-2">{img.split}</span>
@@ -350,7 +362,7 @@ function ImageCard({ img, datasetInfo, innerRef, onClick }) {
     )
 }
 
-// --- MODAL FULLSCREEN CON ZOOM E PAN ---
+// --- MODAL FULLSCREEN CON ZOOM (BLOCCATO) E PAN ---
 function ImageModal({ img, datasetInfo, onClose }) {
     const encodePath = encodeURIComponent(img.path);
     const src = `http://localhost:8000/api/viewer/image?path=${encodePath}`;
@@ -360,26 +372,44 @@ function ImageModal({ img, datasetInfo, onClose }) {
     const [pos, setPos] = useState({ x: 0, y: 0 });
     const [isDragging, setIsDragging] = useState(false);
     const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+    
+    // Visibility State for Box Toggles
+    const [hiddenClasses, setHiddenClasses] = useState(new Set());
+
+    const toggleClassVisibility = (cId) => {
+        setHiddenClasses(prev => {
+            const next = new Set(prev);
+            if (next.has(cId)) next.delete(cId);
+            else next.add(cId);
+            return next;
+        });
+    };
 
     const handleWheel = (e) => {
         const scaleBy = 1.1;
         const newScale = e.deltaY < 0 ? scale * scaleBy : scale / scaleBy;
-        setScale(Math.max(0.5, Math.min(newScale, 10)));
+        // Impedisce di zoomare indietro meno del 100% (minimo scale = 1)
+        const finalScale = Math.max(1, Math.min(newScale, 15));
+        setScale(finalScale);
+        
+        // Se torno allo zoom originale, ri-centra l'immagine automaticamente
+        if (finalScale === 1) setPos({ x: 0, y: 0 });
     };
 
     const handleMouseDown = (e) => {
+        // Permetti il pan solo se c'è zoom
+        if (scale === 1) return;
         setIsDragging(true);
         setDragStart({ x: e.clientX - pos.x, y: e.clientY - pos.y });
     };
 
     const handleMouseMove = (e) => {
-        if (!isDragging) return;
+        if (!isDragging || scale === 1) return;
         setPos({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
     };
 
     const handleMouseUp = () => setIsDragging(false);
 
-    // Esc to close
     useEffect(() => {
         const handleKeyDown = (e) => { if (e.key === 'Escape') onClose() }
         window.addEventListener('keydown', handleKeyDown)
@@ -389,24 +419,26 @@ function ImageModal({ img, datasetInfo, onClose }) {
     return (
         <div className="fixed inset-0 z-[999999] bg-slate-950 flex animate-in fade-in duration-200">
             
-            {/* Pulsante Chiusura */}
             <button onClick={onClose} className="absolute top-4 right-4 z-50 bg-slate-800 hover:bg-red-600 text-white p-2 rounded-full shadow-xl transition-colors">
                 <X size={24} />
             </button>
 
             {/* Area Immagine (Sinistra) */}
-            <div className="flex-1 relative overflow-hidden bg-black/90 cursor-grab active:cursor-grabbing flex items-center justify-center"
+            <div className={`flex-1 relative overflow-hidden bg-black/90 flex items-center justify-center ${scale > 1 ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'}`}
                 onWheel={handleWheel} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}
             >
                 <div className="absolute top-4 left-4 z-10 bg-black/60 backdrop-blur px-3 py-1.5 rounded-lg border border-slate-700 flex flex-col gap-1">
-                    <span className="text-xs text-slate-400 font-mono flex items-center gap-2"><MousePointer2 size={12}/> Scroll to Zoom</span>
-                    <span className="text-xs text-slate-400 font-mono flex items-center gap-2"><MousePointer2 size={12}/> Drag to Pan</span>
+                    <span className="text-xs text-slate-400 font-mono flex items-center gap-2"><MousePointer2 size={12}/> Scroll to Zoom In</span>
+                    <span className="text-xs text-slate-400 font-mono flex items-center gap-2"><MousePointer2 size={12}/> Drag to Pan (When Zoomed)</span>
                     <span className="text-xs text-blue-400 font-mono flex items-center gap-2"><ZoomIn size={12}/> {(scale * 100).toFixed(0)}%</span>
                 </div>
 
                 <div className="relative inline-block transition-transform duration-75 origin-center" style={{ transform: `translate(${pos.x}px, ${pos.y}px) scale(${scale})` }}>
                     <img src={src} className="max-w-[80vw] max-h-[90vh] object-contain pointer-events-none" />
                     {img.boxes.map((box, i) => {
+                        // Se la classe è nascosta, non renderizzare il box
+                        if (hiddenClasses.has(box.c)) return null;
+
                         const className = datasetInfo.classes[box.c];
                         const color = CLASS_COLORS[box.c % CLASS_COLORS.length];
                         return (
@@ -449,8 +481,9 @@ function ImageModal({ img, datasetInfo, onClose }) {
                         </div>
                     </div>
 
+                    {/* SEZIONE CLASSI E TOGGLE VISIBILITA' */}
                     <div>
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-3">Detected Classes</label>
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-3">Toggle Detections</label>
                         {img.boxes.length === 0 ? (
                             <div className="text-center py-8 bg-slate-800/30 rounded-xl border border-dashed border-slate-700 text-slate-500 text-sm">
                                 Background Image (No detections)
@@ -458,16 +491,26 @@ function ImageModal({ img, datasetInfo, onClose }) {
                         ) : (
                             <div className="space-y-2">
                                 {Object.entries(img.counts).map(([cId, count]) => {
-                                    const className = datasetInfo.classes[cId];
-                                    const color = CLASS_COLORS[cId % CLASS_COLORS.length];
+                                    const numCId = Number(cId);
+                                    const isHidden = hiddenClasses.has(numCId);
+                                    const className = datasetInfo.classes[numCId];
+                                    const color = CLASS_COLORS[numCId % CLASS_COLORS.length];
+                                    
                                     return (
-                                        <div key={cId} className="flex items-center justify-between bg-black p-3 rounded-xl border border-slate-800">
+                                        <button 
+                                            key={numCId} 
+                                            onClick={() => toggleClassVisibility(numCId)}
+                                            className={`w-full flex items-center justify-between p-3 rounded-xl border transition-colors ${isHidden ? 'bg-slate-900/50 border-slate-800 opacity-60' : 'bg-black border-slate-700 hover:border-slate-500'}`}
+                                        >
                                             <div className="flex items-center gap-3">
-                                                <div className="w-4 h-4 rounded-full shadow-inner" style={{backgroundColor: color}}></div>
-                                                <span className="font-bold text-slate-200">{className}</span>
+                                                <div className="text-slate-400">
+                                                    {isHidden ? <EyeOff size={16}/> : <Eye size={16}/>}
+                                                </div>
+                                                <div className="w-3 h-3 rounded-full shadow-inner" style={{backgroundColor: isHidden ? '#334155' : color}}></div>
+                                                <span className={`font-bold ${isHidden ? 'text-slate-500 line-through' : 'text-slate-200'}`}>{className}</span>
                                             </div>
-                                            <span className="bg-slate-800 text-slate-300 font-mono text-xs px-2 py-1 rounded">Qty: {count}</span>
-                                        </div>
+                                            <span className={`font-mono text-xs px-2 py-1 rounded ${isHidden ? 'bg-slate-800 text-slate-600' : 'bg-slate-800 text-slate-300'}`}>Qty: {count}</span>
+                                        </button>
                                     )
                                 })}
                             </div>
