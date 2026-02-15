@@ -123,7 +123,7 @@ export default function DatasetViewerPage() {
   }
 
   return (
-    <div className="flex gap-6 h-[calc(100vh-100px)]">
+    <div className="h-[calc(100vh-100px)] flex flex-col gap-6">
         
       {/* CSS INIETTATO PER LA SCROLLBAR APPLE-STYLE */}
       <style>{`
@@ -145,134 +145,157 @@ export default function DatasetViewerPage() {
         }
       `}</style>
 
-      {/* SIDEBAR FILTRI */}
-      <div className="w-80 flex flex-col gap-5 bg-slate-900/50 border border-slate-800 rounded-2xl p-5 overflow-y-auto modern-scrollbar shadow-inner">
-          
-          <div className="mb-2">
-              <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 block">1. Load Dataset</label>
-              <button onClick={handleBrowse} className="w-full py-3 border border-dashed border-slate-600 rounded-lg hover:border-blue-500 hover:bg-slate-800/50 flex items-center justify-center gap-2 text-slate-300 transition-colors">
-                  <FolderOpen size={18} /> Select data.yaml
-              </button>
-              <button onClick={loadDataset} disabled={!yamlPath || isInitializing} className="w-full mt-2 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-lg font-bold transition-all shadow-lg shadow-blue-500/20">
-                  {isInitializing ? 'Loading...' : 'Load Dataset'}
-              </button>
-          </div>
-
-          {datasetInfo && (
-          <div className="flex flex-col gap-6">
-              
-              <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                  <h3 className="text-sm font-bold text-white flex items-center gap-2"><Filter size={16} className="text-blue-500"/> Filters</h3>
-                  <button onClick={resetFilters} className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1 font-medium transition-colors"><RotateCcw size={12}/> Reset All</button>
-              </div>
-
-              {/* SPLITS */}
-              <div className="space-y-3">
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2"><Layers size={14}/> Splits</label>
-                  <div className="flex flex-wrap gap-2">
-                      <button onClick={()=>toggleSplit('all')} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all border ${splits.includes('all') ? 'bg-blue-600 border-blue-500 text-white shadow-md' : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-slate-500'}`}>All</button>
-                      {datasetInfo.splits.map(s => (
-                          <button key={s} onClick={()=>toggleSplit(s)} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all border ${splits.includes(s) ? 'bg-purple-600 border-purple-500 text-white shadow-md' : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-slate-500'}`}>{s.toUpperCase()}</button>
-                      ))}
-                  </div>
-              </div>
-
-              {/* BOX COUNTS - MODERN SLIDERS (WIDER INPUTS) */}
-              <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                      <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2"><SquareSquare size={14}/> Objects Count</label>
-                      <span className="text-[10px] text-slate-500 bg-slate-900 px-2 py-0.5 rounded-md">100 = Any</span>
-                  </div>
-                  <div className="bg-slate-900/50 p-3 rounded-xl border border-slate-800 space-y-3">
-                      <div className="flex items-center gap-3">
-                          <span className="text-[10px] font-bold text-slate-500 uppercase w-6">Min</span>
-                          <input type="range" min="0" max="100" value={boxRange.min} onChange={e => setBoxRange({...boxRange, min: parseInt(e.target.value)})} className="flex-1 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500" />
-                          <input type="text" value={boxRange.min} onChange={e => setBoxRange({...boxRange, min: parseInt(e.target.value.replace(/\D/g,''))||0})} className="w-12 bg-black/50 border border-slate-700 rounded-md py-1 text-center text-xs font-mono text-slate-300 outline-none focus:border-blue-500 transition-colors" />
-                      </div>
-                      <div className="flex items-center gap-3">
-                          <span className="text-[10px] font-bold text-slate-500 uppercase w-6">Max</span>
-                          <input type="range" min="0" max="100" value={boxRange.max} onChange={e => setBoxRange({...boxRange, max: parseInt(e.target.value)})} className="flex-1 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500" />
-                          <input type="text" value={boxRange.max} onChange={e => setBoxRange({...boxRange, max: parseInt(e.target.value.replace(/\D/g,''))||0})} className="w-12 bg-black/50 border border-slate-700 rounded-md py-1 text-center text-xs font-mono text-slate-300 outline-none focus:border-blue-500 transition-colors" />
-                      </div>
-                  </div>
-              </div>
-
-              {/* BOX AREAS - PERFECT MATCH WITH OBJECTS COUNT */}
-              <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                      <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2"><Maximize size={14}/> Object Area Size</label>
-                      <span className="text-[10px] text-slate-500 bg-slate-900 px-2 py-0.5 rounded-md">% of image</span>
-                  </div>
-                  <div className="bg-slate-900/50 p-3 rounded-xl border border-slate-800 space-y-3">
-                      <div className="flex items-center gap-3">
-                          <span className="text-[10px] font-bold text-slate-500 uppercase w-6">Min</span>
-                          <input type="range" min="0" max="100" value={Math.round(areaRange.min*100)} onChange={e => setAreaRange({...areaRange, min: (parseInt(e.target.value)||0)/100})} className="flex-1 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-purple-500" />
-                          <input type="text" value={Math.round(areaRange.min*100)} onChange={e => setAreaRange({...areaRange, min: (parseInt(e.target.value.replace(/\D/g,''))||0)/100})} className="w-12 bg-black/50 border border-slate-700 rounded-md py-1 text-center text-xs font-mono text-slate-300 outline-none focus:border-purple-500 transition-colors" />
-                      </div>
-                      <div className="flex items-center gap-3">
-                          <span className="text-[10px] font-bold text-slate-500 uppercase w-6">Max</span>
-                          <input type="range" min="0" max="100" value={Math.round(areaRange.max*100)} onChange={e => setAreaRange({...areaRange, max: (parseInt(e.target.value)||0)/100})} className="flex-1 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-purple-500" />
-                          <input type="text" value={Math.round(areaRange.max*100)} onChange={e => setAreaRange({...areaRange, max: (parseInt(e.target.value.replace(/\D/g,''))||0)/100})} className="w-12 bg-black/50 border border-slate-700 rounded-md py-1 text-center text-xs font-mono text-slate-300 outline-none focus:border-purple-500 transition-colors" />
-                      </div>
-                  </div>
-              </div>
-
-              {/* CLASSES */}
-              <div className="space-y-3 flex-1">
-                  <div className="flex items-center justify-between">
-                      <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2"><Target size={14}/> Must Contain</label>
-                  </div>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                      {datasetInfo.classes.map((cls, i) => {
-                          const isSel = selectedClasses.includes(i);
-                          const color = CLASS_COLORS[i % CLASS_COLORS.length];
-                          return (
-                              <button 
-                                  key={i} onClick={()=>toggleClass(i)}
-                                  className={`text-xs px-3 py-1.5 rounded-lg border transition-all ${isSel ? 'bg-slate-800 text-white shadow-md' : 'bg-slate-900 text-slate-400 border-slate-800 hover:border-slate-600'}`}
-                                  style={{borderColor: isSel ? color : '', backgroundColor: isSel ? `${color}20` : ''}}
-                              >
-                                  {cls}
-                              </button>
-                          )
-                      })}
-                  </div>
-              </div>
-          </div>
-          )}
+      {/* HEADER DELLA PAGINA (Coerente con Merger/Analyzer) */}
+      <div className="shrink-0">
+        <h2 className="text-3xl font-bold text-blue-400 mb-1">Dataset Viewer</h2>
+        <p className="text-slate-400">Visually explore datasets, apply advanced filters, and inspect bounding boxes.</p>
       </div>
 
-      {/* GALLERY AREA */}
-      <div className="flex-1 bg-slate-900/30 rounded-2xl border border-slate-800 overflow-hidden flex flex-col relative shadow-inner">
+      {/* CONTENUTO PRINCIPALE */}
+      <div className="flex gap-6 flex-1 min-h-0">
           
-          <div className="bg-slate-900/80 backdrop-blur-xl p-4 border-b border-slate-800 flex justify-between items-center z-10 shadow-lg">
-              <div className="flex items-center gap-4">
-                  <h2 className="text-xl font-black text-white flex items-center gap-2"><ImageIcon className="text-blue-500"/> Dataset Viewer</h2>
-                  {datasetInfo && <span className="bg-emerald-900/30 text-emerald-400 px-3 py-1 rounded-full text-xs font-bold border border-emerald-500/30 tracking-wider uppercase">{totalMatches} Results</span>}
+          {/* SIDEBAR FILTRI */}
+          <div className="w-80 flex flex-col gap-5 bg-slate-900/50 border border-slate-800 rounded-2xl p-5 overflow-y-auto modern-scrollbar shadow-inner">
+              
+              <div className="mb-2">
+                  <div className="flex items-center gap-2 mb-3">
+                      <div className="w-1.5 h-5 bg-blue-500 rounded-full"></div>
+                      <h3 className="font-bold text-white tracking-wider">Load Dataset</h3>
+                  </div>
+                  <button onClick={handleBrowse} className="w-full py-3 border border-dashed border-slate-600 rounded-lg hover:border-blue-500 hover:bg-slate-800/50 flex items-center justify-center gap-2 text-slate-300 transition-colors">
+                      <FolderOpen size={18} /> Select data.yaml
+                  </button>
+                  <button onClick={loadDataset} disabled={!yamlPath || isInitializing} className="w-full mt-2 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-lg font-bold transition-all shadow-lg shadow-blue-500/20">
+                      {isInitializing ? 'Loading...' : 'Load Dataset'}
+                  </button>
               </div>
+
+              {datasetInfo && (
+              <div className="flex flex-col gap-6">
+                  
+                  <div className="flex items-center justify-between border-b border-slate-800 pb-2 mt-2">
+                      <div className="flex items-center gap-2">
+                          <div className="w-1.5 h-5 bg-blue-500 rounded-full"></div>
+                          <h3 className="font-bold text-white tracking-wider flex items-center gap-2"><Filter size={16} className="text-blue-500"/> Filters</h3>
+                      </div>
+                      <button onClick={resetFilters} className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1 font-medium transition-colors"><RotateCcw size={12}/> Reset All</button>
+                  </div>
+
+                  {/* SPLITS */}
+                  <div className="space-y-3">
+                      <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2"><Layers size={14}/> Splits</label>
+                      <div className="flex flex-wrap gap-2">
+                          <button onClick={()=>toggleSplit('all')} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all border ${splits.includes('all') ? 'bg-blue-600 border-blue-500 text-white shadow-md' : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-slate-500'}`}>All</button>
+                          {datasetInfo.splits.map(s => (
+                              <button key={s} onClick={()=>toggleSplit(s)} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all border ${splits.includes(s) ? 'bg-purple-600 border-purple-500 text-white shadow-md' : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-slate-500'}`}>{s.toUpperCase()}</button>
+                          ))}
+                      </div>
+                  </div>
+
+                  {/* BOX COUNTS - MODERN SLIDERS */}
+                  <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                          <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2"><SquareSquare size={14}/> Objects Count</label>
+                          <span className="text-[10px] text-slate-500 bg-slate-900 px-2 py-0.5 rounded-md">100 = Any</span>
+                      </div>
+                      <div className="bg-slate-900/50 p-3 rounded-xl border border-slate-800 space-y-3">
+                          <div className="flex items-center gap-3">
+                              <span className="text-[10px] font-bold text-slate-500 uppercase w-6">Min</span>
+                              <input type="range" min="0" max="100" value={boxRange.min} onChange={e => setBoxRange({...boxRange, min: parseInt(e.target.value)})} className="flex-1 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500" />
+                              <input type="text" value={boxRange.min} onChange={e => setBoxRange({...boxRange, min: parseInt(e.target.value.replace(/\D/g,''))||0})} className="w-12 bg-black/50 border border-slate-700 rounded-md py-1 text-center text-xs font-mono text-slate-300 outline-none focus:border-blue-500 transition-colors" />
+                          </div>
+                          <div className="flex items-center gap-3">
+                              <span className="text-[10px] font-bold text-slate-500 uppercase w-6">Max</span>
+                              <input type="range" min="0" max="100" value={boxRange.max} onChange={e => setBoxRange({...boxRange, max: parseInt(e.target.value)})} className="flex-1 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500" />
+                              <input type="text" value={boxRange.max} onChange={e => setBoxRange({...boxRange, max: parseInt(e.target.value.replace(/\D/g,''))||0})} className="w-12 bg-black/50 border border-slate-700 rounded-md py-1 text-center text-xs font-mono text-slate-300 outline-none focus:border-blue-500 transition-colors" />
+                          </div>
+                      </div>
+                  </div>
+
+                  {/* BOX AREAS - PERFECT MATCH */}
+                  <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                          <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2"><Maximize size={14}/> Object Area Size</label>
+                          <span className="text-[10px] text-slate-500 bg-slate-900 px-2 py-0.5 rounded-md">% of image</span>
+                      </div>
+                      <div className="bg-slate-900/50 p-3 rounded-xl border border-slate-800 space-y-3">
+                          <div className="flex items-center gap-3">
+                              <span className="text-[10px] font-bold text-slate-500 uppercase w-6">Min</span>
+                              <input type="range" min="0" max="100" value={Math.round(areaRange.min*100)} onChange={e => setAreaRange({...areaRange, min: (parseInt(e.target.value)||0)/100})} className="flex-1 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-purple-500" />
+                              <input type="text" value={Math.round(areaRange.min*100)} onChange={e => setAreaRange({...areaRange, min: (parseInt(e.target.value.replace(/\D/g,''))||0)/100})} className="w-12 bg-black/50 border border-slate-700 rounded-md py-1 text-center text-xs font-mono text-slate-300 outline-none focus:border-purple-500 transition-colors" />
+                          </div>
+                          <div className="flex items-center gap-3">
+                              <span className="text-[10px] font-bold text-slate-500 uppercase w-6">Max</span>
+                              <input type="range" min="0" max="100" value={Math.round(areaRange.max*100)} onChange={e => setAreaRange({...areaRange, max: (parseInt(e.target.value)||0)/100})} className="flex-1 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-purple-500" />
+                              <input type="text" value={Math.round(areaRange.max*100)} onChange={e => setAreaRange({...areaRange, max: (parseInt(e.target.value.replace(/\D/g,''))||0)/100})} className="w-12 bg-black/50 border border-slate-700 rounded-md py-1 text-center text-xs font-mono text-slate-300 outline-none focus:border-purple-500 transition-colors" />
+                          </div>
+                      </div>
+                  </div>
+
+                  {/* CLASSES */}
+                  <div className="space-y-3 flex-1">
+                      <div className="flex items-center justify-between">
+                          <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2"><Target size={14}/> Must Contain</label>
+                      </div>
+                      <div className="flex flex-wrap gap-2 mt-2">
+                          {datasetInfo.classes.map((cls, i) => {
+                              const isSel = selectedClasses.includes(i);
+                              const color = CLASS_COLORS[i % CLASS_COLORS.length];
+                              return (
+                                  <button 
+                                      key={i} onClick={()=>toggleClass(i)}
+                                      className={`text-xs px-3 py-1.5 rounded-lg border transition-all ${isSel ? 'bg-slate-800 text-white shadow-md' : 'bg-slate-900 text-slate-400 border-slate-800 hover:border-slate-600'}`}
+                                      style={{borderColor: isSel ? color : '', backgroundColor: isSel ? `${color}20` : ''}}
+                                  >
+                                      {cls}
+                                  </button>
+                              )
+                          })}
+                      </div>
+                  </div>
+              </div>
+              )}
           </div>
 
-          {/* OVERFLOW-X-HIDDEN per bloccare lo scroll laterale e MODERN-SCROLLBAR per renderla bellissima */}
-          <div className="flex-1 overflow-y-auto overflow-x-hidden p-6 modern-scrollbar relative">
-              {!datasetInfo && !isInitializing ? (
-                  <div className="h-full flex flex-col items-center justify-center text-slate-500">
-                      <div className="w-24 h-24 bg-slate-800 rounded-full flex items-center justify-center mb-6 shadow-inner border border-slate-700">
-                        <FolderOpen size={40} className="text-slate-400"/>
-                      </div>
-                      <h3 className="text-xl font-bold text-slate-300 mb-2">No Dataset Loaded</h3>
-                      <p className="text-sm">Select and load a YAML file from the sidebar to start exploring your images.</p>
-                  </div>
-              ) : (
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-                      {images.map((img, index) => {
-                          const ref = images.length === index + 1 ? lastImageElementRef : null;
-                          return <ImageCard key={img.id} img={img} datasetInfo={datasetInfo} innerRef={ref} onClick={() => setSelectedImage(img)} />
-                      })}
-                  </div>
-              )}
+          {/* GALLERY AREA */}
+          <div className="flex-1 bg-slate-900/30 rounded-2xl border border-slate-800 overflow-hidden flex flex-col relative shadow-inner">
               
-              {loading && !isInitializing && datasetInfo && <div className="py-12 text-center font-bold text-blue-400 animate-pulse flex items-center justify-center gap-3"><div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"/> Loading more images...</div>}
-              {!hasMore && images.length > 0 && <div className="py-12 text-center font-bold text-slate-600 flex items-center justify-center gap-2"><div className="h-px bg-slate-800 w-12"/> End of results <div className="h-px bg-slate-800 w-12"/></div>}
+              {/* HEADER GALLERY (Semplificato) */}
+              <div className="bg-slate-900/80 backdrop-blur-xl p-4 border-b border-slate-800 flex justify-between items-center z-10 shadow-lg">
+                  <div className="flex items-center gap-3">
+                      <ImageIcon size={20} className="text-slate-500"/>
+                      <span className="text-slate-300 font-medium">Gallery View</span>
+                  </div>
+                  {datasetInfo && (
+                      <div className="bg-emerald-900/30 border border-emerald-500/30 px-4 py-1.5 rounded-full flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                          <span className="text-emerald-400 text-xs font-bold tracking-wider uppercase">{totalMatches} Results</span>
+                      </div>
+                  )}
+              </div>
+
+              {/* GRIGLIA IMMAGINI */}
+              <div className="flex-1 overflow-y-auto overflow-x-hidden p-6 modern-scrollbar relative">
+                  {!datasetInfo && !isInitializing ? (
+                      <div className="h-full flex flex-col items-center justify-center text-slate-500">
+                          <div className="w-24 h-24 bg-slate-800 rounded-full flex items-center justify-center mb-6 shadow-inner border border-slate-700">
+                            <FolderOpen size={40} className="text-slate-400"/>
+                          </div>
+                          <h3 className="text-xl font-bold text-slate-300 mb-2">No Dataset Loaded</h3>
+                          <p className="text-sm">Select and load a YAML file from the sidebar to start exploring your images.</p>
+                      </div>
+                  ) : (
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                          {images.map((img, index) => {
+                              const ref = images.length === index + 1 ? lastImageElementRef : null;
+                              return <ImageCard key={img.id} img={img} datasetInfo={datasetInfo} innerRef={ref} onClick={() => setSelectedImage(img)} />
+                          })}
+                      </div>
+                  )}
+                  
+                  {loading && !isInitializing && datasetInfo && <div className="py-12 text-center font-bold text-blue-400 animate-pulse flex items-center justify-center gap-3"><div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"/> Loading more images...</div>}
+                  {!hasMore && images.length > 0 && <div className="py-12 text-center font-bold text-slate-600 flex items-center justify-center gap-2"><div className="h-px bg-slate-800 w-12"/> End of results <div className="h-px bg-slate-800 w-12"/></div>}
+              </div>
           </div>
       </div>
 
@@ -367,13 +390,11 @@ function ImageModal({ img, datasetInfo, onClose }) {
     const encodePath = encodeURIComponent(img.path);
     const src = `http://localhost:8000/api/viewer/image?path=${encodePath}`;
     
-    // Zoom & Pan State
     const [scale, setScale] = useState(1);
     const [pos, setPos] = useState({ x: 0, y: 0 });
     const [isDragging, setIsDragging] = useState(false);
     const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
     
-    // Visibility State for Box Toggles
     const [hiddenClasses, setHiddenClasses] = useState(new Set());
 
     const toggleClassVisibility = (cId) => {
@@ -388,16 +409,12 @@ function ImageModal({ img, datasetInfo, onClose }) {
     const handleWheel = (e) => {
         const scaleBy = 1.1;
         const newScale = e.deltaY < 0 ? scale * scaleBy : scale / scaleBy;
-        // Impedisce di zoomare indietro meno del 100% (minimo scale = 1)
         const finalScale = Math.max(1, Math.min(newScale, 15));
         setScale(finalScale);
-        
-        // Se torno allo zoom originale, ri-centra l'immagine automaticamente
         if (finalScale === 1) setPos({ x: 0, y: 0 });
     };
 
     const handleMouseDown = (e) => {
-        // Permetti il pan solo se c'è zoom
         if (scale === 1) return;
         setIsDragging(true);
         setDragStart({ x: e.clientX - pos.x, y: e.clientY - pos.y });
@@ -436,7 +453,6 @@ function ImageModal({ img, datasetInfo, onClose }) {
                 <div className="relative inline-block transition-transform duration-75 origin-center" style={{ transform: `translate(${pos.x}px, ${pos.y}px) scale(${scale})` }}>
                     <img src={src} className="max-w-[80vw] max-h-[90vh] object-contain pointer-events-none" />
                     {img.boxes.map((box, i) => {
-                        // Se la classe è nascosta, non renderizzare il box
                         if (hiddenClasses.has(box.c)) return null;
 
                         const className = datasetInfo.classes[box.c];
