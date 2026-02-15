@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from config import settings
-from routers import analyze, merge, improvement, viewer # Rimosso video, aggiunto viewer
+from routers import analyze, merge, improvement, viewer 
 
 settings.ensure_directories()
 
@@ -22,7 +22,7 @@ app.add_middleware(
 
 app.mount("/storage", StaticFiles(directory=str(settings.BASE_PATH)), name="storage")
 
-app.include_router(viewer.router, prefix="/api/viewer", tags=["Dataset Viewer"]) # Nuovo!
+app.include_router(viewer.router, prefix="/api/viewer", tags=["Dataset Viewer"]) 
 app.include_router(analyze.router, prefix="/api/analyze", tags=["Analyzer"])
 app.include_router(merge.router, prefix="/api/merge", tags=["Merger"])
 app.include_router(improvement.router, prefix="/api/improve", tags=["Model Improvement"])

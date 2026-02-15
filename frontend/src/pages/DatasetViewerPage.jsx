@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { FolderOpen, Filter, Layers, SquareSquare, Maximize, Target, RotateCcw, X, ZoomIn, Info, MousePointer2, Image as ImageIcon, Eye, EyeOff } from 'lucide-react'
+import { FolderOpen, Filter, Layers, SquareSquare, Maximize, Target, RotateCcw, X, ZoomIn, Info, MousePointer2, Image as ImageIcon, Eye, EyeOff, CheckCircle2 } from 'lucide-react'
 import { CLASS_COLORS } from './InferenceViewer'
 import { createPortal } from 'react-dom'
 
@@ -145,10 +145,22 @@ export default function DatasetViewerPage() {
         }
       `}</style>
 
-      {/* HEADER DELLA PAGINA (Coerente con Merger/Analyzer) */}
-      <div className="shrink-0">
-        <h2 className="text-3xl font-bold text-blue-400 mb-1">Dataset Viewer</h2>
-        <p className="text-slate-400">Visually explore datasets, apply advanced filters, and inspect bounding boxes.</p>
+      {/* HEADER UNIFICATO */}
+      <div className="shrink-0 flex items-center gap-5">
+        <div className="w-16 h-16 rounded-2xl bg-slate-900 border border-slate-700/50 flex items-center justify-center shadow-inner relative overflow-hidden group">
+            <div className="absolute inset-0 bg-blue-500/10 group-hover:bg-blue-500/20 transition-colors"></div>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-400 relative z-10">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"></circle>
+                <polyline points="21 15 16 10 5 21"></polyline>
+            </svg>
+        </div>
+        <div>
+          <h2 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400">
+            Dataset Viewer
+          </h2>
+          <p className="text-slate-400 font-medium mt-1">Visually explore datasets, apply advanced filters, and inspect bounding boxes.</p>
+        </div>
       </div>
 
       {/* CONTENUTO PRINCIPALE */}
@@ -162,9 +174,23 @@ export default function DatasetViewerPage() {
                       <div className="w-1.5 h-5 bg-blue-500 rounded-full"></div>
                       <h3 className="font-bold text-white tracking-wider">Load Dataset</h3>
                   </div>
-                  <button onClick={handleBrowse} className="w-full py-3 border border-dashed border-slate-600 rounded-lg hover:border-blue-500 hover:bg-slate-800/50 flex items-center justify-center gap-2 text-slate-300 transition-colors">
-                      <FolderOpen size={18} /> Select data.yaml
+                  
+                  {/* BOTTONE YAML CON FEEDBACK VISIVO */}
+                  <button 
+                      onClick={handleBrowse} 
+                      className={`w-full py-3 border border-dashed rounded-lg flex items-center justify-center gap-2 transition-all duration-300 ${
+                          yamlPath 
+                          ? 'border-emerald-500/50 bg-emerald-900/20 text-emerald-400 hover:bg-emerald-900/40 shadow-[0_0_15px_rgba(16,185,129,0.1)]' 
+                          : 'border-slate-600 hover:border-blue-500 hover:bg-slate-800/50 text-slate-300'
+                      }`}
+                      title={yamlPath || 'Select data.yaml'}
+                  >
+                      {yamlPath ? <CheckCircle2 size={18} className="shrink-0" /> : <FolderOpen size={18} className="shrink-0" />}
+                      <span className="truncate px-2 text-sm font-medium">
+                          {yamlPath ? 'data.yaml Selected' : 'Select data.yaml'}
+                      </span>
                   </button>
+
                   <button onClick={loadDataset} disabled={!yamlPath || isInitializing} className="w-full mt-2 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-lg font-bold transition-all shadow-lg shadow-blue-500/20">
                       {isInitializing ? 'Loading...' : 'Load Dataset'}
                   </button>

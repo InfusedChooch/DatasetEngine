@@ -171,13 +171,24 @@ export default function AnalyzerPage() {
   return (
     <div className="space-y-6 relative min-h-screen pb-20">
       
-      {/* HEADER */}
-      <div className="flex items-center justify-between">
-        <div>
-            <h2 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">
-                Dataset Analyzer
-            </h2>
-            <p className="text-slate-400 mt-1">Deep inspection & automated cleaning tool</p>
+      {/* HEADER UNIFICATO */}
+      <div className="flex items-center justify-between shrink-0">
+        <div className="flex items-center gap-5">
+          <div className="w-16 h-16 rounded-2xl bg-slate-900 border border-slate-700/50 flex items-center justify-center shadow-inner relative overflow-hidden group">
+              <div className="absolute inset-0 bg-emerald-500/10 group-hover:bg-emerald-500/20 transition-colors"></div>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-400 relative z-10">
+                  <path d="M3 3v18h18"/>
+                  <rect x="7" y="10" width="4" height="7" rx="1" fill="currentColor" fillOpacity="0.2"/>
+                  <rect x="14" y="5" width="4" height="12" rx="1" fill="currentColor" fillOpacity="0.2"/>
+                  <circle cx="16" cy="5" r="2" fill="currentColor" className="text-blue-400"/>
+              </svg>
+          </div>
+          <div>
+              <h2 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">
+                  Dataset Analyzer
+              </h2>
+              <p className="text-slate-400 mt-1 font-medium">Deep inspection & automated cleaning tool</p>
+          </div>
         </div>
       </div>
 

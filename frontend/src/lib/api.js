@@ -5,35 +5,35 @@ const API_URL = 'http://localhost:8000/api'
 export const api = {
   // --- ANALYZER (LOCAL) ---
   
-  // Analizza il dataset locale
+  // Analyze the local dataset
   analyzeLocalDataset: (path) => {
     return axios.post(`${API_URL}/analyze/local`, { path })
   },
   
-  // Apre il selettore file di Windows
+  // Opens Windows file selector
   browseFile: () => {
     return axios.get(`${API_URL}/analyze/browse`)
   },
   
-  // Pulisce i duplicati
+  // Cleans duplicates
   cleanupDataset: (data) => {
     return axios.post(`${API_URL}/analyze/cleanup`, data)
   },
   
-  // Helper per ottenere l'URL dell'immagine locale (non è una chiamata axios, restituisce stringa)
+  // Helper to get the local image URL (not an axios call, returns string)
   getImageUrl: (localPath) => {
     if (!localPath) return '';
     return `${API_URL}/analyze/image?path=${encodeURIComponent(localPath)}`
   },
 
   // --- MERGER ---
-// Recupera le info del dataset (Master o Client)
+// Retrieve dataset info (Master or Client)
   getDatasetInfo: (path) => axios.post(`${API_URL}/merge/info`, { path }),
   
-  // Apre il selettore cartella per l'output
+  // Opens the folder selector for output
   browseFolder: () => axios.get(`${API_URL}/merge/browse_folder`),
   
-  // Esegue il merge
+  // Performs merge
   executeMerge: (data) => axios.post(`${API_URL}/merge/execute`, data),
   
   // --- MODEL IMPROVEMENT ---

@@ -29,7 +29,7 @@ async def browse_folder_endpoint():
 @router.post("/execute")
 async def execute_merge(request: MergeRequest):
     """
-    Ritorna uno stream di eventi JSON (NDJSON) per aggiornare la UI in tempo reale.
+    A JSON event stream (NDJSON) returns to update the UI in real time.
     """
     return StreamingResponse(
         merger.merge_datasets_generator(request),

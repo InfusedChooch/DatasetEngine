@@ -91,13 +91,20 @@ export default function ImprovementSetup() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto space-y-8 pb-20">
-      <div className="text-center">
-        <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 mb-4 shadow-lg shadow-blue-500/20">
-          <Target size={32} className="text-white" />
+    <div className="space-y-8 pb-20 relative min-h-screen">
+      {/* HEADER UNIFICATO */}
+      <div className="flex items-center gap-5 shrink-0">
+        <div className="w-16 h-16 rounded-2xl bg-slate-900 border border-slate-700/50 flex items-center justify-center shadow-inner relative overflow-hidden group">
+            <div className="absolute inset-0 bg-blue-500/10 group-hover:bg-blue-500/20 transition-colors"></div>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-400 relative z-10">
+                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                <circle cx="12" cy="12" r="4" fill="currentColor" fillOpacity="0.2" className="text-purple-400"/>
+            </svg>
         </div>
-        <h2 className="text-4xl font-extrabold text-white mb-3">Model Improvement</h2>
-        <p className="text-lg text-slate-400">Find where your model fails, fix it rapidly.</p>
+        <div className="text-left">
+            <h2 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">Model Improvement</h2>
+            <p className="text-slate-400 mt-1 font-medium">Find where your model fails, fix it rapidly.</p>
+        </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">

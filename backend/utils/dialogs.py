@@ -1,17 +1,17 @@
-# Crea backend/utils/dialogs.py
+# Create backend/utils/dialogs.py
 import tkinter as tk
 from tkinter import filedialog
 import os
 
 def open_file_dialog():
-    """Apre una finestra nativa di Windows per selezionare il file yaml"""
-    # Nascondi la finestra principale di tkinter
+    """Opens a native Windows window to select the yaml file"""
+    # Hide the main tkinter window
     root = tk.Tk()
     root.withdraw()
-    root.attributes('-topmost', True) # Porta la finestra in primo piano
+    root.attributes('-topmost', True) # Bring the window to the foreground
     
     file_path = filedialog.askopenfilename(
-        title="Seleziona il file data.yaml",
+        title="Select the data.yaml file",
         filetypes=[("YAML files", "*.yaml *.yml"), ("All files", "*.*")]
     )
     
@@ -23,7 +23,7 @@ def open_folder_dialog():
     root.withdraw()
     root.attributes('-topmost', True)
     folder_path = filedialog.askdirectory(
-        title="Seleziona Cartella di Output"
+        title="Select Output Folder"
     )
     root.destroy()
     return folder_path

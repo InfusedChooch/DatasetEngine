@@ -73,4 +73,4 @@ class AnnotationService:
                 })
         
         with open(annotations_file, "w") as f:
-            json.dump(annotations, f, indent=2)
+            json.dump(annotations, f, indent=2) 

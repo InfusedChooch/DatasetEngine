@@ -17,14 +17,14 @@ inference_service = InferenceService()
 annotation_service = AnnotationService()
 exporter_service = ExporterService()
 
-# --- SCHEMA LOCALE ---
+# --- LOCAL SCHEME ---
 class CreateLocalProjectRequest(BaseModel):
     name: str
     model_path: str
     source_path: str
     sampling_rate: int = 30
 
-# --- DIALOGHI NATIVI FILTRATI ---
+# --- NATIVE DIALOGUES FILTERED ---
 @router.get("/browse_model")
 async def browse_model_endpoint():
     root = tk.Tk()
@@ -103,7 +103,7 @@ async def export_dataset(request: ExportRequest):
         output_path, count = exporter_service.export_dataset(request)
         return {"success": True, "output_path": str(output_path), "exported_frames": count}
     except ValueError as e:
-        # Se non ci sono frame selezionati, manda un errore 400 pulito al Frontend
+        # If there are no frames selected, send a clean 400 error to the Frontend
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Export failed: {str(e)}")

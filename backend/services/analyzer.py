@@ -30,7 +30,7 @@ class AnalyzerService:
     @staticmethod
     def analyze_dataset_generator(yaml_path_str: str, dataset_id: str):
         """
-        GENERATORE: Esegue l'analisi e invia aggiornamenti in tempo reale (Streaming NDJSON).
+        GENERATOR: Performs analysis and sends real-time updates (Streaming NDJSON).
         """
         yield json.dumps({"type": "log", "msg": "🚀 Starting Deep Analysis..."}) + "\n"
         

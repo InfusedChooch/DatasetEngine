@@ -20,4 +20,4 @@ def download_youtube_video(url: str, output_path: Path) -> Path:
 
 def is_youtube_url(url: str) -> bool:
     youtube_domains = ['youtube.com', 'youtu.be', 'www.youtube.com']
-    return any(domain in url.lower() for domain in youtube_domains)
+    return any(domain in url.lower() for domain in youtube_domains) 

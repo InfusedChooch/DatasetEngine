@@ -9,11 +9,11 @@ class ViewerService:
         self.current_dataset = {}
 
     def load_dataset(self, yaml_path: str) -> Dict:
-        ypath = Path(yaml_path)
+        ypath = Path(yaml_path).resolve()
         if not ypath.exists():
             raise FileNotFoundError("YAML file not found")
             
-        with open(ypath, 'r') as f:
+        with open(ypath, 'r', encoding='utf-8') as f:
             data = yaml.safe_load(f)
             
         base_dir = ypath.parent
@@ -27,50 +27,82 @@ class ViewerService:
             "images": []
         }
 
-        # Scan splits
-        splits = ['train', 'val', 'test']
+        splits = ['train', 'val', 'valid', 'test']
         img_id_counter = 0
 
         for split in splits:
             split_rel = data.get(split)
             if not split_rel: continue
             
-            # Handle list of paths or single string
             split_paths = [split_rel] if isinstance(split_rel, str) else split_rel
             
             for sp in split_paths:
-                img_dir = base_dir / sp
-                if not img_dir.exists(): continue
+                sp_str = str(sp).strip().replace('\\', '/')
+                
+                # Removes Roboflow '../'
+                if sp_str.startswith("../"):
+                    sp_str = sp_str[3:]
+                
+                img_dir = (base_dir / sp_str).resolve()
+                
+                # --- ARMORED SECURITY FALLBACK ---
+                if not img_dir.exists():
+                    # Let's create a list of probable paths
+                    fallback_paths = [
+                        base_dir / split,                  # Es: /train
+                        base_dir / 'images' / split,       # Es: /images/train (Il caso del tuo ultimo screen!)
+                        base_dir / split / 'images'        # Es: /train/images
+                    ]
+                    
+                    # If we are looking for 'val', we also look for 'valid' and vice versa
+                    if split == 'val':
+                        fallback_paths.extend([base_dir / 'valid', base_dir / 'images' / 'valid'])
+                    elif split == 'valid':
+                        fallback_paths.extend([base_dir / 'val', base_dir / 'images' / 'val'])
+                        
+                    found = False
+                    for fb in fallback_paths:
+                        if fb.exists():
+                            img_dir = fb
+                            found = True
+                            break
+                            
+                    if not found:
+                        continue # If it does not exist in any variant, skip the split
                 
                 for img_file in img_dir.rglob("*"):
                     if img_file.suffix.lower() not in ['.jpg', '.jpeg', '.png']: continue
                     
-                    # Compute Label Path
+                    # Label Path Calculation (Search for "images" and make it "labels")
                     lbl_file = None
-                    # Common YOLO struct: images/train -> labels/train
-                    if "images" in img_file.parts:
-                        lbl_file = Path(str(img_file).replace("images", "labels")).with_suffix('.txt')
+                    parts = list(img_file.parts)
+                    if "images" in parts:
+                        idx = len(parts) - 1 - parts[::-1].index("images")
+                        parts[idx] = "labels"
+                        lbl_file = Path(*parts).with_suffix('.txt')
                     else:
-                        # Fallback: same folder
                         lbl_file = img_file.with_suffix('.txt')
 
                     boxes = []
                     class_counts = {}
                     
                     if lbl_file and lbl_file.exists():
-                        with open(lbl_file, 'r') as lf:
-                            for line in lbl_file.read_text().strip().split('\n'):
-                                parts = line.strip().split()
-                                if len(parts) >= 5:
-                                    c_id = int(parts[0])
-                                    w, h = float(parts[3]), float(parts[4])
-                                    area = w * h
-                                    boxes.append({
-                                        "c": c_id,
-                                        "x": float(parts[1]), "y": float(parts[2]),
-                                        "w": w, "h": h, "a": area
-                                    })
-                                    class_counts[c_id] = class_counts.get(c_id, 0) + 1
+                        try:
+                            with open(lbl_file, 'r', encoding='utf-8') as lf:
+                                for line in lf.read().strip().split('\n'):
+                                    parts_line = line.strip().split()
+                                    if len(parts_line) >= 5:
+                                        c_id = int(parts_line[0])
+                                        w, h = float(parts_line[3]), float(parts_line[4])
+                                        area = w * h
+                                        boxes.append({
+                                            "c": c_id,
+                                            "x": float(parts_line[1]), "y": float(parts_line[2]),
+                                            "w": w, "h": h, "a": area
+                                        })
+                                        class_counts[c_id] = class_counts.get(c_id, 0) + 1
+                        except Exception:
+                            pass
 
                     dataset_info["images"].append({
                         "id": img_id_counter,
@@ -103,24 +135,13 @@ class ViewerService:
             if box_count < filters.get("min_boxes", 0): continue
             if filters.get("max_boxes") is not None and box_count > filters["max_boxes"]: continue
 
-            # Semantic Similarity Filter (Exact matches for class counts)
-            semantic_match = filters.get("semantic_match")
-            if semantic_match:
-                # semantic_match is a dict: {"class_id": expected_count}
-                match_failed = False
-                for c_id, expected_count in semantic_match.items():
-                    if img["counts"].get(int(c_id), 0) != expected_count:
-                        match_failed = True
-                        break
-                if match_failed: continue
-
-            # Allowed Classes Filter (Image must contain AT LEAST ONE of the allowed classes)
+            # Allowed Classes Filter
             allowed_classes = filters.get("classes")
             if allowed_classes is not None and len(allowed_classes) > 0:
                 has_allowed = any(c_id in allowed_classes for c_id in img["counts"].keys())
-                if not has_allowed and box_count > 0: continue # Se non ha classi consentite ma ha box, scarta
+                if not has_allowed and box_count > 0: continue
 
-            # Box Area Filter (Image must have at least one box in the area range, or be empty if min_area=0)
+            # Box Area Filter
             min_a = filters.get("min_area", 0.0)
             max_a = filters.get("max_area", 1.0)
             if min_a > 0.0 or max_a < 1.0:

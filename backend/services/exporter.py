@@ -9,7 +9,7 @@ class ExporterService:
     def export_dataset(self, request: ExportRequest) -> tuple[Path, int]:
         project_path = settings.get_project_path(request.project_id)
         
-        # Ora request.output_name contiene il PERCORSO ASSOLUTO scelto dall'utente nel frontend
+        # request.output_name contains the ABSOLUTE PATH chosen by the user in the frontend
         output_path = Path(request.output_name)
         
         images_out = output_path / "images" / "train"

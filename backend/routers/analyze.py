@@ -13,7 +13,7 @@ analyzer = AnalyzerService()
 @router.get("/browse")
 async def browse_file():
     """
-    Apre la finestra di dialogo di Windows sul server per selezionare il file.
+    Opens the Windows dialog box on the server to select the file.
     """
     try:
         path = open_file_dialog()
@@ -25,7 +25,7 @@ async def browse_file():
 @router.post("/local")
 async def analyze_local_dataset(request: AnalyzePathRequest):
     """
-    Ritorna uno stream NDJSON con log e progresso in tempo reale.
+    Returns an NDJSON stream with real-time logs and progress.
     """
     try:
         dataset_id = str(uuid.uuid4())
@@ -39,7 +39,7 @@ async def analyze_local_dataset(request: AnalyzePathRequest):
 @router.post("/cleanup")
 async def cleanup_dataset_endpoint(request: CleanupRequest):
     """
-    Esegue la pulizia fisica dei file duplicati.
+    Performs physical cleanup of duplicate files.
     """
     try:
         result = analyzer.cleanup_dataset(request)
@@ -50,14 +50,14 @@ async def cleanup_dataset_endpoint(request: CleanupRequest):
 @router.get("/image")
 async def get_local_image(path: str):
     """
-    Legge un file locale e lo restituisce al browser come stream di byte.
+    Reads a local file and returns it to the browser as a byte stream.
     """
     try:
         file_path = Path(path)
         if not file_path.exists():
             raise HTTPException(status_code=404, detail="Image not found")
         
-        # Determina il Content-Type corretto
+        # Determine the correct Content-Type
         suffix = file_path.suffix.lower()
         media_type = "image/jpeg" # Default
         if suffix == ".png": media_type = "image/png"

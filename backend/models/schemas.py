@@ -13,7 +13,7 @@ class DatasetStats(BaseModel):
     image_paths: List[str]
     path: str
     avg_labels_per_image: float
-    background_images: int  # Immagini senza label
+    background_images: int  # Images without labels
     box_size_distribution: Dict[str, int]  # Small, Medium, Large
     duplicate_images: int
     duplicate_labels: Dict[str, int] # Class Name -> Count of duplicate boxes
@@ -40,12 +40,12 @@ class DatasetInfo(BaseModel):
 class MergeMappingRule(BaseModel):
     dataset_index: int     # 0 = Master, 1+ = Clients
     source_class_id: int
-    target_class_id: int   # -1 = Escludi (Drop)
+    target_class_id: int   # -1 = Drop
 
 class MergeRequest(BaseModel):
-    datasets: List[DatasetInfo] # Lista ordinata: [0] è Master
-    target_classes: List[str]   # La lista finale dei nomi delle classi (es: ['ball', 'hoop', 'new_class'])
-    mappings: List[MergeMappingRule] # Regole di conversione ID -> ID
+    datasets: List[DatasetInfo] # Ordered list :[0] is the Master
+    target_classes: List[str]   # The final list of class names (es: ['ball', 'hoop', 'new_class'])
+    mappings: List[MergeMappingRule] # conversion roles ID -> ID
     output_path: str
     split_ratios: List[float] # [train, val, test] es: [0.7, 0.2, 0.1]
     seed: int = 42

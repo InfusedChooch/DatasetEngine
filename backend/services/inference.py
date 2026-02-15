@@ -112,7 +112,7 @@ class InferenceService:
         with open(project_path / "inference.json") as f:
             frames = json.load(f)
             
-        # NUOVO: Conta i frame inclusi nel training
+        # Count the frames included in the training
         included_count = 0
         annotations_file = project_path / "annotations.json"
         if annotations_file.exists():
@@ -131,5 +131,5 @@ class InferenceService:
             "low_confidence": low_conf,
             "high_confidence": high_conf,
             "detection_rate": ((total - no_detection) / total * 100) if total > 0 else 0,
-            "included_frames": included_count # <-- Aggiunto alle statistiche
+            "included_frames": included_count 
         }

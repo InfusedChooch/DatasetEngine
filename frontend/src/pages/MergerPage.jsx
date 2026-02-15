@@ -246,7 +246,7 @@ export default function MergerPage() {
     }
 
     return (
-        <div className="space-y-8 pb-20 max-w-6xl mx-auto relative min-h-screen">
+        <div className="space-y-8 pb-20 relative min-h-screen">
             
             {/* NOTIFICATIONS */}
             {notification && (
@@ -258,10 +258,22 @@ export default function MergerPage() {
                 </div>
             )}
 
-            {/* HEADER */}
-            <div>
-                <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">Dataset Merger</h1>
-                <p className="text-slate-400 mt-2">Combine datasets, remap classes, and regenerate splits.</p>
+            {/* HEADER UNIFICATO */}
+            <div className="flex items-center gap-5 shrink-0">
+                <div className="w-16 h-16 rounded-2xl bg-slate-900 border border-slate-700/50 flex items-center justify-center shadow-inner relative overflow-hidden group">
+                    <div className="absolute inset-0 bg-purple-500/10 group-hover:bg-purple-500/20 transition-colors"></div>
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-purple-400 relative z-10">
+                        <circle cx="18" cy="18" r="3" fill="currentColor" fillOpacity="0.2"/>
+                        <circle cx="6" cy="6" r="3" fill="currentColor" fillOpacity="0.2"/>
+                        <circle cx="6" cy="18" r="3" fill="currentColor" fillOpacity="0.2" className="text-pink-400"/>
+                        <path d="M6 9v2a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V9"/>
+                        <path d="M6 15v-2"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">Dataset Merger</h1>
+                    <p className="text-slate-400 mt-1 font-medium">Combine datasets, remap classes, and regenerate splits.</p>
+                </div>
             </div>
 
             {error && <div className="bg-red-500/10 p-4 rounded-lg text-red-200 border border-red-500/30 flex items-center gap-2"><AlertCircle/> {error}</div>}

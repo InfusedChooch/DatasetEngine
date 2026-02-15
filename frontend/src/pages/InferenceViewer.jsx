@@ -106,10 +106,23 @@ export default function InferenceViewer() {
 
   return (
     <div className="space-y-6">
-      {/* HEADER E CONTATORE DATASET */}
-      <div className="flex items-center justify-between">
-        <div><h2 className="text-3xl font-bold">{currentProject.name}</h2><p className="text-slate-400">Fast Triage: Flag bad frames for correction</p></div>
-        <div className="flex gap-3">
+      {/* HEADER UNIFICATO E CONTATORI */}
+      <div className="flex items-center justify-between shrink-0">
+        <div className="flex items-center gap-5">
+            <div className="w-16 h-16 rounded-2xl bg-slate-900 border border-slate-700/50 flex items-center justify-center shadow-inner relative overflow-hidden group">
+                <div className="absolute inset-0 bg-red-500/10 group-hover:bg-red-500/20 transition-colors"></div>
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-400 relative z-10">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                    <path d="M3 9h18M9 21V9"/>
+                    <path d="M13 13.5l2-1.5 2 1.5v-4l-2 1.5-2-1.5v4z" fill="currentColor" className="text-orange-400"/>
+                </svg>
+            </div>
+            <div>
+                <h2 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-orange-400">{currentProject.name}</h2>
+                <p className="text-slate-400 mt-1 font-medium">Fast Triage: Flag bad frames for correction</p>
+            </div>
+        </div>
+        <div className="flex gap-3 items-center">
             
             <div className="flex items-center gap-2 bg-emerald-900/30 border border-emerald-500/30 text-emerald-400 px-4 py-2 rounded-lg font-bold">
                 <Database size={18}/> {stats?.included_frames || 0} In Dataset
