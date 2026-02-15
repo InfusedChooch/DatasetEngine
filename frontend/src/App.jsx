@@ -1,11 +1,11 @@
 import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom'
-import { BarChart3, Merge, Target, Video } from 'lucide-react'
+import { BarChart3, Merge, Target, Image as ImageIcon } from 'lucide-react'
+import DatasetViewerPage from './pages/DatasetViewerPage'
 import AnalyzerPage from './pages/AnalyzerPage'
 import MergerPage from './pages/MergerPage'
 import ImprovementSetup from './pages/ImprovementSetup'
 import InferenceViewer from './pages/InferenceViewer'
 import AnnotationEditor from './pages/AnnotationEditor'
-import VideoEditorPage from './pages/VideoEditorPage'
 
 export default function App() {
   return (
@@ -14,12 +14,12 @@ export default function App() {
         <Navigation />
         <main className="max-w-7xl mx-auto px-4 py-8">
           <Routes>
-            <Route path="/" element={<AnalyzerPage />} />
+            <Route path="/" element={<DatasetViewerPage />} />
+            <Route path="/analyze" element={<AnalyzerPage />} />
             <Route path="/merger" element={<MergerPage />} />
             <Route path="/improve" element={<ImprovementSetup />} />
             <Route path="/improve/viewer" element={<InferenceViewer />} />
             <Route path="/improve/editor" element={<AnnotationEditor />} />
-            <Route path="/video" element={<VideoEditorPage />} />
           </Routes>
         </main>
       </div>
@@ -31,9 +31,7 @@ function Navigation() {
   const location = useLocation()
   
   const isActive = (path) => {
-    if (path === '/improve') {
-      return location.pathname.startsWith('/improve')
-    }
+    if (path === '/improve') return location.pathname.startsWith('/improve')
     return location.pathname === path
   }
 
@@ -52,36 +50,17 @@ function Navigation() {
           </Link>
           
           <div className="flex gap-3">
-            <NavLink 
-              to="/" 
-              icon={<BarChart3 size={18} />}
-              active={isActive('/')}
-            >
+            <NavLink to="/" icon={<ImageIcon size={18} />} active={isActive('/')}>
+              Viewer
+            </NavLink>
+            <NavLink to="/analyze" icon={<BarChart3 size={18} />} active={isActive('/analyze')}>
               Analyzer
             </NavLink>
-            
-            <NavLink 
-              to="/merger" 
-              icon={<Merge size={18} />}
-              active={isActive('/merger')}
-            >
+            <NavLink to="/merger" icon={<Merge size={18} />} active={isActive('/merger')}>
               Merger
             </NavLink>
-            
-            <NavLink 
-              to="/improve" 
-              icon={<Target size={18} />}
-              active={isActive('/improve')}
-            >
+            <NavLink to="/improve" icon={<Target size={18} />} active={isActive('/improve')}>
               Improver
-            </NavLink>
-            
-            <NavLink 
-              to="/video" 
-              icon={<Video size={18} />}
-              active={isActive('/video')}
-            >
-              Video Editor
             </NavLink>
           </div>
         </div>
@@ -95,9 +74,7 @@ function NavLink({ to, icon, children, active }) {
     <Link
       to={to}
       className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-        active 
-          ? 'bg-blue-600 text-white' 
-          : 'bg-slate-800/50 text-slate-300 hover:bg-slate-700/50'
+        active ? 'bg-blue-600 text-white' : 'bg-slate-800/50 text-slate-300 hover:bg-slate-700/50'
       }`}
     >
       {icon}
