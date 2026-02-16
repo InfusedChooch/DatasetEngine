@@ -4,7 +4,7 @@
 
 <div align="center">
   
-  ![Dataset Engine Banner](public/banner.png)
+  ![Dataset Engine Banner](public/banner.jpeg)
   
   [![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
   [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
