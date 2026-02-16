@@ -4,7 +4,9 @@
 
 <div align="center">
   
-  ![Dataset Engine Banner](frontend/public/banner.jpg)
+  <img src="frontend/public/banner.jpg" alt="Dataset Engine Banner" width="100%" />
+  
+  <br><br>
   
   [![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
   [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
@@ -274,7 +276,7 @@ SOFTWARE.
 
 **Built with ❤️ by [@sPappalard**](https://github.com/sPappalard)
 
-[⬆ Back to Top](https://www.google.com/search?q=%23readme-top)
+[⬆ Back to Top](#readme-top))
 
 </div>
 
