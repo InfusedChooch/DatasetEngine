@@ -28,7 +28,7 @@
 
   **If you find Dataset Engine useful, please consider supporting the development!** <br>
   <a href="https://www.buymeacoffee.com/sPappalard">
-    <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" width="180" />
+    <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" width="120" />
   </a>
   
 </div>
