@@ -75,7 +75,7 @@ export default function AnnotationEditor() {
       
       let initialBoxes = data.boxes;
       
-      // APPLICA FILTRI DI CONFIDENZA SOLO SE IL FRAME NON È ANCORA STATO MODIFICATO MANUALMENTE
+      // APPLY CONFIDENCE FILTERS ONLY IF THE FRAME HAS NOT YET BEEN MANUALLY CHANGED
       if (!data.is_annotated) {
           const savedThresholds = JSON.parse(localStorage.getItem('classThresholds') || '{}');
           initialBoxes = initialBoxes.filter(b => {

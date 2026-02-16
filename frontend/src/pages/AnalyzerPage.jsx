@@ -15,20 +15,20 @@ export default function AnalyzerPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   
-  // Stati per il caricamento "WOW" (Streaming)
+  // States for upload (Streaming)
   const [progress, setProgress] = useState({ current: 0, total: 0, percent: 0 })
   const [logs, setLogs] = useState([])
   const logsEndRef = useRef(null)
   
-  // Stati per il Duplicate Inspector
+  // States for the Duplicate Inspector
   const [currentDupIndex, setCurrentDupIndex] = useState(0)
   
-  // Stati per Modale e Pulizia
+  // States for Modal and Clean
   const [modalOpen, setModalOpen] = useState(false)
   const [modalConfig, setModalConfig] = useState({ type: '', title: '', msg: '' })
   const [successMsg, setSuccessMsg] = useState(null)
 
-  // Auto-scroll dei log
+  // Log auto-scroll
   useEffect(() => {
     logsEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [logs])
@@ -40,7 +40,7 @@ export default function AnalyzerPage() {
     } catch (err) { console.error(err) }
   }
 
-  // --- NUOVA FUNZIONE DI ANALISI (STREAMING) ---
+  
   const runAnalysis = async (path) => {
     setLoading(true); 
     setError(null); 
@@ -52,7 +52,7 @@ export default function AnalyzerPage() {
     const cleanPath = path.replace(/"/g, '')
 
     try {
-        // Usiamo fetch nativo per leggere lo stream NDJSON
+        // native fetch to read the NDJSON stream
         const response = await fetch('http://localhost:8000/api/analyze/local', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -107,7 +107,7 @@ export default function AnalyzerPage() {
     runAnalysis(pathInput)
   }
 
-  // Configurazione Modale Pulizia
+  // Modal Configuration Cleaning
   const promptCleanup = (type) => {
     if (type === 'images') {
         setModalConfig({
@@ -139,7 +139,7 @@ export default function AnalyzerPage() {
             clean_labels: modalConfig.type === 'labels'
         })
         
-        // Successo
+        // success
         setSuccessMsg(`Cleanup Completed: Deleted ${result.deleted_images} images and fixed ${result.fixed_labels} labels.`)
         
         // Auto-Refresh
@@ -153,7 +153,7 @@ export default function AnalyzerPage() {
     }
   }
 
-  // --- DATA PREPARATION (IDENTICA A PRIMA) ---
+  // --- DATA PREPARATION  ---
   const barData = stats?.class_distribution ? Object.entries(stats.class_distribution)
     .sort((a,b) => b[1] - a[1]) 
     .map(([name, count]) => ({ name, count })) : []
@@ -171,7 +171,7 @@ export default function AnalyzerPage() {
   return (
     <div className="space-y-6 relative min-h-screen pb-20">
       
-      {/* HEADER UNIFICATO */}
+      {/* HEADER */}
       <div className="flex items-center justify-between shrink-0">
         <div className="flex items-center gap-5">
           <div className="w-16 h-16 rounded-2xl bg-slate-900 border border-slate-700/50 flex items-center justify-center shadow-inner relative overflow-hidden group">
@@ -417,7 +417,7 @@ export default function AnalyzerPage() {
         </div>
       )}
 
-      {/* --- MODALE CONFERMA CUSTOM --- */}
+      {/* --- MODAL CONFIRMS --- */}
       {modalOpen && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center px-4">
             <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setModalOpen(false)}></div>
@@ -457,7 +457,7 @@ export default function AnalyzerPage() {
         </div>
       )}
 
-      {/* --- WOW LOADER: TERMINAL STYLE + PROGRESS --- */}
+      {/* --- LOADER: TERMINAL STYLE + PROGRESS --- */}
       {loading && createPortal(
         <div 
           className="fixed inset-0 w-full h-full z-[99999] bg-slate-900/95 backdrop-blur-xl flex flex-col items-center justify-center p-8"

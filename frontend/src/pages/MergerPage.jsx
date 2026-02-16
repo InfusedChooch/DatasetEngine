@@ -258,7 +258,7 @@ export default function MergerPage() {
                 </div>
             )}
 
-            {/* HEADER UNIFICATO */}
+            {/* HEADER */}
             <div className="flex items-center gap-5 shrink-0">
                 <div className="w-16 h-16 rounded-2xl bg-slate-900 border border-slate-700/50 flex items-center justify-center shadow-inner relative overflow-hidden group">
                     <div className="absolute inset-0 bg-purple-500/10 group-hover:bg-purple-500/20 transition-colors"></div>
@@ -347,7 +347,7 @@ export default function MergerPage() {
                         </button>
                     </div>
 
-                    {/* NEW: Final Output Classes Preview */}
+                    {/* Final Output Classes Preview */}
                     <div className="mb-6 bg-slate-900/30 p-4 rounded-lg border border-slate-700">
                         <div className="text-xs text-slate-400 uppercase font-bold mb-2 flex items-center gap-2"><Target size={14}/> Final Output Classes (Targets)</div>
                         <div className="flex flex-wrap gap-2">

@@ -19,7 +19,7 @@ export default function ImprovementSetup() {
 
   useEffect(() => { logsEndRef.current?.scrollIntoView({ behavior: "smooth" }) }, [logs])
 
-  // CHIAMATE SEPARATE PER OGNI TIPO DI FILE
+  // SEPARATE CALLS FOR EACH FILE TYPE
   const handleBrowseModel = async () => {
       try { 
           const res = await fetch('http://localhost:8000/api/improve/browse_model');
@@ -92,7 +92,7 @@ export default function ImprovementSetup() {
 
   return (
     <div className="space-y-8 pb-20 relative min-h-screen">
-      {/* HEADER UNIFICATO */}
+      {/* HEADER */}
       <div className="flex items-center gap-5 shrink-0">
         <div className="w-16 h-16 rounded-2xl bg-slate-900 border border-slate-700/50 flex items-center justify-center shadow-inner relative overflow-hidden group">
             <div className="absolute inset-0 bg-blue-500/10 group-hover:bg-blue-500/20 transition-colors"></div>

@@ -24,7 +24,7 @@ export default function App() {
           </Routes>
         </main>
 
-        {/* SUPPORT BUTTON (IN BASSO A SINISTRA) */}
+        {/* SUPPORT BUTTON (bottom-left) */}
         <div className="fixed bottom-6 left-6 z-[9999]">
           <a 
             href="https://buymeacoffee.com/spappalard" 
@@ -38,10 +38,10 @@ export default function App() {
           </a>
         </div>
 
-        {/* DOCK FLUTTUANTE: REPO + FIRMA (IN BASSO A DESTRA) */}
+        {/* FLOATING DOCK: REPO + FIRMA (bottom-right) */}
         <div className="fixed bottom-6 right-6 z-[9999] flex items-center bg-slate-900/80 backdrop-blur-md border border-slate-700 rounded-full shadow-2xl hover:border-slate-500 transition-all duration-300 hover:-translate-y-1">
           
-          {/* Link al Repository */}
+          {/* Link to the Repository */}
           <a 
             href="https://github.com/sPappalard/DatasetEngine" 
             target="_blank" 
@@ -53,7 +53,7 @@ export default function App() {
             <span className="font-bold">DatasetEngine</span>
           </a>
 
-          {/* Link al Profilo Autore */}
+          {/* Link to the Author Profile */}
           <a 
             href="https://github.com/sPappalard" 
             target="_blank" 
@@ -83,7 +83,7 @@ function Navigation() {
       <div className="max-w-7xl mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
           
-          {/* LOGO E TITOLO */}
+          {/* logo and title */}
           <Link to="/" className="flex items-center gap-3 group">
             <div className="transform group-hover:scale-105 transition-transform duration-300">
               {/* LOGO SVG MINIMAL */}
@@ -102,7 +102,7 @@ function Navigation() {
             </div>
           </Link>
           
-          {/* MENU NAVIGAZIONE */}
+          {/* navigation menu */}
           <div className="flex gap-2 bg-slate-950/50 p-1.5 rounded-xl border border-slate-800">
             <NavLink to="/" icon={<ImageIcon size={16} />} active={isActive('/')}>
               Viewer

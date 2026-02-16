@@ -24,13 +24,13 @@ export default function DatasetViewerPage() {
   // Modal State
   const [selectedImage, setSelectedImage] = useState(null)
 
-  // Intersection Observer per lo scroll infinito
+  // Intersection Observer for infinite scroll
   const observer = useRef()
   const lastImageElementRef = useCallback(node => {
     if (loading) return
     if (observer.current) observer.current.disconnect()
     
-    // Inizia a caricare 500px PRIMA della fine per uno scroll perfettamente fluido
+    // Start loading 500px BEFORE the end for a perfectly smooth scroll
     observer.current = new IntersectionObserver(entries => {
       if (entries[0].isIntersecting && hasMore) setPage(prev => prev + 1)
     }, { rootMargin: '500px' })
@@ -125,7 +125,7 @@ export default function DatasetViewerPage() {
   return (
     <div className="h-[calc(100vh-100px)] flex flex-col gap-6">
         
-      {/* CSS INIETTATO PER LA SCROLLBAR APPLE-STYLE */}
+      {/* CSS INJECTED FOR APPLE-STYLE SCROLLBAR */}
       <style>{`
         .modern-scrollbar::-webkit-scrollbar {
           width: 10px;
@@ -145,7 +145,7 @@ export default function DatasetViewerPage() {
         }
       `}</style>
 
-      {/* HEADER UNIFICATO */}
+      {/* HEADER  */}
       <div className="shrink-0 flex items-center gap-5">
         <div className="w-16 h-16 rounded-2xl bg-slate-900 border border-slate-700/50 flex items-center justify-center shadow-inner relative overflow-hidden group">
             <div className="absolute inset-0 bg-blue-500/10 group-hover:bg-blue-500/20 transition-colors"></div>
@@ -163,10 +163,10 @@ export default function DatasetViewerPage() {
         </div>
       </div>
 
-      {/* CONTENUTO PRINCIPALE */}
+      {/* main content */}
       <div className="flex gap-6 flex-1 min-h-0">
           
-          {/* SIDEBAR FILTRI */}
+          {/* SIDEBAR FILTERS */}
           <div className="w-80 flex flex-col gap-5 bg-slate-900/50 border border-slate-800 rounded-2xl p-5 overflow-y-auto modern-scrollbar shadow-inner">
               
               <div className="mb-2">
@@ -175,7 +175,7 @@ export default function DatasetViewerPage() {
                       <h3 className="font-bold text-white tracking-wider">Load Dataset</h3>
                   </div>
                   
-                  {/* BOTTONE YAML CON FEEDBACK VISIVO */}
+                  {/* YAML BUTTON WITH VISUAL FEEDBACK */}
                   <button 
                       onClick={handleBrowse} 
                       className={`w-full py-3 border border-dashed rounded-lg flex items-center justify-center gap-2 transition-all duration-300 ${
@@ -286,7 +286,7 @@ export default function DatasetViewerPage() {
           {/* GALLERY AREA */}
           <div className="flex-1 bg-slate-900/30 rounded-2xl border border-slate-800 overflow-hidden flex flex-col relative shadow-inner">
               
-              {/* HEADER GALLERY (Semplificato) */}
+              {/* HEADER GALLERY */}
               <div className="bg-slate-900/80 backdrop-blur-xl p-4 border-b border-slate-800 flex justify-between items-center z-10 shadow-lg">
                   <div className="flex items-center gap-3">
                       <ImageIcon size={20} className="text-slate-500"/>
@@ -300,7 +300,7 @@ export default function DatasetViewerPage() {
                   )}
               </div>
 
-              {/* GRIGLIA IMMAGINI */}
+              {/* IMAGE GRID */}
               <div className="flex-1 overflow-y-auto overflow-x-hidden p-6 modern-scrollbar relative">
                   {!datasetInfo && !isInitializing ? (
                       <div className="h-full flex flex-col items-center justify-center text-slate-500">
@@ -411,7 +411,7 @@ function ImageCard({ img, datasetInfo, innerRef, onClick }) {
     )
 }
 
-// --- MODAL FULLSCREEN CON ZOOM (BLOCCATO) E PAN ---
+// --- FULLSCREEN MODAL WITH ZOOM (LOCKED) AND PAN ---
 function ImageModal({ img, datasetInfo, onClose }) {
     const encodePath = encodeURIComponent(img.path);
     const src = `http://localhost:8000/api/viewer/image?path=${encodePath}`;
@@ -466,7 +466,7 @@ function ImageModal({ img, datasetInfo, onClose }) {
                 <X size={24} />
             </button>
 
-            {/* Area Immagine (Sinistra) */}
+            {/* Image Area (Left) */}
             <div className={`flex-1 relative overflow-hidden bg-black/90 flex items-center justify-center ${scale > 1 ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'}`}
                 onWheel={handleWheel} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}
             >
@@ -498,7 +498,7 @@ function ImageModal({ img, datasetInfo, onClose }) {
                 </div>
             </div>
 
-            {/* Pannello Info (Destra) */}
+            {/* Info Panel (Right) */}
             <div className="w-96 bg-slate-900 border-l border-slate-800 flex flex-col shadow-2xl">
                 <div className="p-6 border-b border-slate-800 bg-slate-900/50">
                     <h2 className="text-xl font-bold flex items-center gap-2"><Info className="text-blue-500"/> Image Details</h2>
@@ -523,7 +523,7 @@ function ImageModal({ img, datasetInfo, onClose }) {
                         </div>
                     </div>
 
-                    {/* SEZIONE CLASSI E TOGGLE VISIBILITA' */}
+                    {/* CLASSES SECTION AND TOGGLE VISIBLE */}
                     <div>
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-3">Toggle Detections</label>
                         {img.boxes.length === 0 ? (

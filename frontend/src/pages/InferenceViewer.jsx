@@ -4,7 +4,7 @@ import { api } from '../lib/api'
 import { useProjectStore } from '../hooks/useProject'
 import { useNavigate } from 'react-router-dom'
 
-// PALETTE COLORI (Stile YOLO)
+// COLOR PALETTE (YOLO Style)
 export const CLASS_COLORS = [
     '#FF3838', '#FF9D97', '#FF701F', '#FFB21D', '#CFD231', '#48F90A',
     '#92CC17', '#3DDB86', '#1A9334', '#00D4BB', '#2C99A8', '#00C2FF',
@@ -25,7 +25,7 @@ export default function InferenceViewer() {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [hiddenClasses, setHiddenClasses] = useState(new Set())
 
-  // SOGLIE CONFIDENZA PER CLASSE
+  // CONFIDENCE THRESHOLDS BY CLASS
   const [classThresholds, setClassThresholds] = useState(() => {
     const saved = localStorage.getItem('classThresholds');
     return saved ? JSON.parse(saved) : {};
@@ -54,7 +54,7 @@ export default function InferenceViewer() {
 
   const handleKeyDown = useCallback((e) => {
     if (viewMode !== 'single') return;
-    // Ignora le scorciatoie se l'utente sta scrivendo dentro un input
+    // Ignore shortcuts if the user is typing into an input
     if (e.target.tagName.toLowerCase() === 'input') return;
 
     if (e.key === 'ArrowRight') {
@@ -106,7 +106,7 @@ export default function InferenceViewer() {
 
   return (
     <div className="space-y-6">
-      {/* HEADER UNIFICATO E CONTATORI */}
+      {/* HEADER */}
       <div className="flex items-center justify-between shrink-0">
         <div className="flex items-center gap-5">
             <div className="w-16 h-16 rounded-2xl bg-slate-900 border border-slate-700/50 flex items-center justify-center shadow-inner relative overflow-hidden group">
@@ -152,13 +152,13 @@ export default function InferenceViewer() {
         </div>
       )}
 
-      {/* NUOVO DESIGN: DASHBOARD FILTRI */}
+      {/* DASHBOARD FILTERS */}
       <div className="bg-slate-800/40 rounded-2xl p-5 border border-slate-700/60 shadow-inner">
         <div className="flex items-center gap-2 text-slate-300 font-bold uppercase text-xs tracking-wider mb-5">
             <Filter size={18} className="text-blue-500" /> Visibility & Confidence Thresholds
         </div>
         
-        {/* GLOBAL THRESHOLD (Se in modalità Low Conf) */}
+        {/* GLOBAL THRESHOLD (If in Low Conf mode) */}
         {filterMode === 'low_confidence' && (
           <div className="flex items-center gap-4 bg-slate-900/80 px-5 py-3 rounded-xl border border-yellow-500/30 mb-6 shadow-lg">
             <AlertTriangle size={20} className="text-yellow-500" />
@@ -185,7 +185,7 @@ export default function InferenceViewer() {
           </div>
         )}
 
-        {/* GRIGLIA CARD PER CLASSE */}
+        {/* CARD GRID BY CLASS */}
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
             {availableClasses.map(cls => {
                 const classId = currentProject.class_names.indexOf(cls)
@@ -196,7 +196,7 @@ export default function InferenceViewer() {
                 return (
                 <div key={cls} className={`bg-slate-900/60 rounded-xl p-3 border transition-all duration-200 ${isHidden ? 'border-slate-800 opacity-50 bg-slate-900/30' : 'border-slate-600 shadow-md hover:border-slate-500'}`}>
                     
-                    {/* Header: Toggle e Input Testuale */}
+                    {/* Header: Toggle and Text Input */}
                     <div className="flex justify-between items-center mb-3 gap-2">
                         <button 
                             onClick={() => toggleClassVisibility(cls)} 
