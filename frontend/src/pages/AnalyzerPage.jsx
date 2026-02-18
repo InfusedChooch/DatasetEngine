@@ -52,7 +52,6 @@ export default function AnalyzerPage() {
     const cleanPath = path.replace(/"/g, '')
 
     try {
-        // native fetch to read the NDJSON stream
         const response = await fetch('http://localhost:8000/api/analyze/local', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -61,15 +60,26 @@ export default function AnalyzerPage() {
 
         const reader = response.body.getReader()
         const decoder = new TextDecoder()
+        
+        // BUFFER PER GESTIRE I CHUNK TAGLIATI A META'
+        let buffer = '';
 
         while(true) {
             const { done, value } = await reader.read()
             if (done) break
             
-            const chunk = decoder.decode(value, { stream: true })
-            const lines = chunk.split('\n').filter(line => line.trim() !== '')
+            // Aggiungiamo i nuovi dati scaricati al nostro buffer
+            buffer += decoder.decode(value, { stream: true })
             
+            // Dividiamo per andare a capo
+            const lines = buffer.split('\n')
+            
+            // L'ultima riga potrebbe essere tagliata a metà. 
+            // La togliamo dall'array e la teniamo nel buffer per il prossimo ciclo!
+            buffer = lines.pop();
+
             for (const line of lines) {
+                if (line.trim() === '') continue;
                 try {
                     const data = JSON.parse(line)
                     
@@ -92,9 +102,22 @@ export default function AnalyzerPage() {
                         setError(data.msg)
                         setLoading(false)
                     }
-                } catch (e) { console.error("Parse error", e) }
+                } catch (e) { console.error("Parse error on line:", line, e) }
             }
         }
+        
+        // Alla fine dello stream, se è rimasto un ultimo pezzo valido nel buffer, lo processiamo
+        if (buffer.trim() !== '') {
+            try {
+                const data = JSON.parse(buffer)
+                if (data.type === 'complete') {
+                    setStats(data.data)
+                    setCurrentDataset(data.data)
+                    setLoading(false)
+                }
+            } catch (e) { console.error("Final parse error", e) }
+        }
+
     } catch (err) { 
         setError("Connection failed. Check backend.")
         setLoading(false)

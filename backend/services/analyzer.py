@@ -248,3 +248,76 @@ class AnalyzerService:
             "type": "complete",
             "data": final_stats.dict()
         }) + "\n"
+
+    @staticmethod
+    def cleanup_dataset(request) -> dict:
+        deleted_images = 0
+        fixed_labels = 0
+        
+        # 1. DUPLICATE IMAGE REMOVAL (Keeps first, deletes copies)
+        if request.clean_images and request.duplicate_groups:
+            for group in request.duplicate_groups:
+                if len(group) > 1:
+                    # Let's start from index 1 to skip (and therefore save) the original image
+                    for img_path_str in group[1:]:
+                        try:
+                            img_path = Path(img_path_str)
+                            if img_path.exists():
+                                img_path.unlink()  # Delete image
+                                deleted_images += 1
+                                
+                                # Try to delete the associated label.txt file as well
+                                lbl_file = None
+                                parts = list(img_path.parts)
+                                if 'images' in parts:
+                                    idx = len(parts) - 1 - parts[::-1].index('images')
+                                    parts[idx] = 'labels'
+                                    lbl_file = Path(*parts).with_suffix('.txt')
+                                else:
+                                    lbl_file = img_path.with_suffix('.txt')
+                                    
+                                if lbl_file and lbl_file.exists():
+                                    lbl_file.unlink() # Delete the label
+                        except Exception:
+                            pass # Ignore blocked or already removed files
+                            
+        # 2. REMOVING DUPLICATE LABEL (Clears.txt files from overlapping lines)
+        if request.clean_labels:
+            yaml_path = Path(request.dataset_path)
+            if yaml_path.exists():
+                dataset_dir = yaml_path.parent
+                
+                # Search for all.txt files in the dataset folder
+                for txt_file in dataset_dir.rglob("*.txt"):
+                    # We ignore text files that are not labels (e.g. README or classes.txt)
+                    if txt_file.name.lower() in ["classes.txt", "readme.txt", "readme.dataset.txt", "readme.roboflow.txt"]:
+                        continue
+                        
+                    try:
+                        with open(txt_file, 'r', encoding='utf-8') as f:
+                            lines = f.read().splitlines()
+                            
+                        seen = set()
+                        unique_lines = []
+                        modified = False
+                        
+                        for line in lines:
+                            val = line.strip()
+                            if not val:
+                                continue
+                                
+                            if val in seen:
+                                fixed_labels += 1
+                                modified = True
+                            else:
+                                seen.add(val)
+                                unique_lines.append(val)
+                                
+                        # If we have removed duplicates, we overwrite the clean file
+                        if modified:
+                            with open(txt_file, 'w', encoding='utf-8') as f:
+                                f.write('\n'.join(unique_lines) + '\n')
+                    except Exception:
+                        pass
+                        
+        return {"deleted_images": deleted_images, "fixed_labels": fixed_labels}    

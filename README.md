@@ -1,4 +1,4 @@
-# 🛠️ Dataset Engine - The Ultimate CV Data Studio
+# 🛠️ Dataset Engine - Local CV Data Studio
 
 <a name="readme-top"></a>
 

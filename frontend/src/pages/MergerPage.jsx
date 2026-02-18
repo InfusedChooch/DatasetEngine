@@ -1,5 +1,6 @@
 // frontend/src/pages/MergerPage.jsx
 import { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { api } from '../lib/api'
 import { 
     GitMerge, FolderOpen, Plus, ArrowRight, Trash2, 
@@ -437,19 +438,20 @@ export default function MergerPage() {
             )}
 
             {/* CLASS MODAL */}
-            {showClassModal && (
-                <div className="fixed inset-0 z-[9000] flex items-center justify-center bg-black/80 backdrop-blur-sm px-4">
+            {showClassModal && createPortal(
+                <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/80 backdrop-blur-sm px-4" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}>
                     <div className="bg-slate-800 border border-slate-600 rounded-xl p-6 w-full max-w-sm animate-in zoom-in-95">
                         <div className="flex justify-between items-center mb-4"><h3 className="text-lg font-bold text-white">New Output Class</h3><button onClick={() => setShowClassModal(false)}><X className="text-slate-400 hover:text-white"/></button></div>
                         <input autoFocus type="text" placeholder="Class Name (e.g. 'Ball')" value={newClassName} onChange={(e) => setNewClassName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && confirmAddClass()} className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white mb-4 outline-none focus:border-purple-500"/>
                         <div className="flex justify-end gap-2"><button onClick={() => setShowClassModal(false)} className="px-4 py-2 text-slate-300 hover:text-white">Cancel</button><button onClick={confirmAddClass} className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-bold">Create</button></div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
             {/* MERGE PROGRESS OVERLAY */}
-            {merging && (
-                <div className="fixed inset-0 z-[9999] bg-slate-900/95 backdrop-blur-xl flex flex-col items-center justify-center p-8">
+            {merging && createPortal(
+                <div className="fixed inset-0 z-[99999] bg-slate-900/95 backdrop-blur-xl flex flex-col items-center justify-center p-8" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}>
                     <div className="w-full max-w-2xl bg-slate-800 border border-slate-700 rounded-2xl p-8 shadow-2xl">
                         <div className="flex items-center gap-4 mb-6">
                             <div className="w-12 h-12 border-4 border-purple-500/30 border-t-purple-500 rounded-full animate-spin"/>
@@ -474,12 +476,13 @@ export default function MergerPage() {
                             <div ref={logsEndRef} />
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
             {/* RESULT SUCCESS MODAL */}
-            {result && (
-                <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+            {result && createPortal(
+                <div className="fixed inset-0 z-[100000] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}>
                     <div className="bg-slate-800 border border-emerald-500/50 rounded-2xl p-8 max-w-lg w-full shadow-2xl animate-in zoom-in-95">
                         <div className="flex flex-col items-center text-center">
                             <div className="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center text-emerald-400 mb-4"><CheckCircle2 size={40} /></div>
@@ -492,7 +495,8 @@ export default function MergerPage() {
                             <button onClick={() => setResult(null)} className="px-8 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-bold">Close</button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </div>
     )
