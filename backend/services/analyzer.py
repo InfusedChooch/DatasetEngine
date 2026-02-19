@@ -3,8 +3,11 @@ import hashlib
 import json
 from pathlib import Path
 from collections import Counter
-from models.schemas import DatasetStats
+from models.schemas import DatasetStats, SplitStat
 import os
+import shutil
+import random
+import concurrent.futures
 
 class AnalyzerService:
     
@@ -28,11 +31,12 @@ class AnalyzerService:
             return ""
 
     @staticmethod
-    def analyze_dataset_generator(yaml_path_str: str, dataset_id: str):
+    def analyze_dataset_generator(yaml_path_str: str, dataset_id: str, split: str = "all"):
         """
         GENERATOR: Performs analysis and sends real-time updates (Streaming NDJSON).
+        Now reads EVERYTHING initially so the frontend can switch tabs instantly.
         """
-        yield json.dumps({"type": "log", "msg": "🚀 Starting Deep Analysis..."}) + "\n"
+        yield json.dumps({"type": "log", "msg": f"🚀 Starting Global Deep Analysis..."}) + "\n"
         
         yaml_path = Path(yaml_path_str)
         if not yaml_path.exists():
@@ -44,41 +48,33 @@ class AnalyzerService:
         
         yield json.dumps({"type": "log", "msg": "📄 Configuration loaded. Resolving paths..."}) + "\n"
         
-        yaml_dir = yaml_path.parent
-        train_config = config.get('train')
-        root_path = yaml_dir 
-
+        # --- PATH RESOLUTION WITH SPLIT FILTERING ---
+        root_path = yaml_path.parent
         if 'path' in config:
             config_path = Path(config['path'])
-            if config_path.is_absolute(): root_path = config_path
-            else: root_path = (yaml_dir / config_path).resolve()
+            attempted_path = config_path if config_path.is_absolute() else (root_path / config_path).resolve()
+            
+            if attempted_path.exists() and attempted_path.is_dir():
+                root_path = attempted_path
+            else:
+                yield json.dumps({"type": "log", "msg": "⚠️ Ignored broken path in YAML. Using local directory..."}) + "\n"
 
-        if train_config:
-            p_train = Path(train_config)
-            if p_train.is_absolute(): train_path = p_train
-            else: train_path = (root_path / p_train).resolve()
-        else:
-            train_path = root_path / 'train'
+        # WE FORCE READING EVERYTHING
+        search_dirs = ['train', 'val', 'valid', 'test']
 
-        # Fallback
-        if not train_path.exists() or not any(train_path.iterdir() if train_path.is_dir() else []):
-            yield json.dumps({"type": "log", "msg": "⚠️ Standard path empty. Trying smart search..."}) + "\n"
-            alternatives = [
-                yaml_dir / 'train', yaml_dir / 'train' / 'images', yaml_dir / 'images' / 'train',
-                yaml_dir.parent / 'train', yaml_dir.parent / 'images' / 'train'
-            ]
-            for alt in alternatives:
-                if alt.exists() and alt.is_dir():
-                    train_path = alt
-                    break
-        
-        yield json.dumps({"type": "log", "msg": f"📂 Target Directory: {train_path}"}) + "\n"
+        yield json.dumps({"type": "log", "msg": f"📂 Target Directories: {', '.join(search_dirs)}"}) + "\n"
 
         # --- GATHER IMAGES ---
         image_files = []
-        if train_path.is_dir():
-            extensions = {'.jpg', '.jpeg', '.png', '.bmp', '.webp'}
-            image_files = [p for p in train_path.rglob('*') if p.suffix.lower() in extensions]
+        extensions = {'.jpg', '.jpeg', '.png', '.bmp', '.webp'}
+        
+        for d in search_dirs:
+            p = root_path / d
+            if not p.exists(): p = root_path / 'images' / d
+            if p.exists() and p.is_dir():
+                image_files.extend([f for f in p.rglob('*') if f.suffix.lower() in extensions])
+                
+        image_files = list(set(image_files)) # Removes any duplicates
         
         total_images = len(image_files)
         yield json.dumps({"type": "log", "msg": f"📸 Found {total_images} images. Starting inspection..."}) + "\n"
@@ -90,10 +86,10 @@ class AnalyzerService:
         elif isinstance(classes, dict):
             classes = {int(k): v for k, v in classes.items()}
 
-        # --- ANALYSIS LOOP ---
-        class_counts = Counter()
+        # Advanced data structures for separate tracking
+        temp_stats = {s: {'img': 0, 'lbl': 0, 'c_dist': Counter(), 'i_dist': Counter()} for s in ['train', 'val', 'test', 'all']}
+        
         duplicate_labels_count = Counter()
-        total_labels = 0
         background_images = 0
         box_sizes = Counter({'Small': 0, 'Medium': 0, 'Large': 0})
         duplicate_images_count = 0
@@ -104,6 +100,18 @@ class AnalyzerService:
         
         # Phase 1: Hashing
         for i, img in enumerate(image_files):
+            # --- UNDERSTAND WHICH FOLDER WE ARE IN ---
+            img_parts = [p.lower() for p in img.parts]
+            img_split = 'train' # default
+            if 'val' in img_parts or 'valid' in img_parts: img_split = 'val'
+            elif 'test' in img_parts: img_split = 'test'
+            
+            temp_stats[img_split]['img'] += 1
+            temp_stats['all']['img'] += 1
+            # -----------------------------------
+            
+            # Resolve Label Path
+            label_file = None
             try:
                 sz = img.stat().st_size
                 if sz not in files_by_size: files_by_size[sz] = []
@@ -115,7 +123,7 @@ class AnalyzerService:
                 yield json.dumps({
                     "type": "progress",
                     "current": i,
-                    "total": total_images * 2, # Phase 1 + Phase 2
+                    "total": total_images * 2,
                     "percent": round((i / (total_images * 2)) * 100, 1),
                     "log": f"Indexing: {img.name}"
                 }) + "\n"
@@ -124,15 +132,13 @@ class AnalyzerService:
         
         if potential_duplicates:
             yield json.dumps({"type": "log", "msg": f"🕵️ Checking {len(potential_duplicates)} suspicious groups..."}) + "\n"
-            
             for group in potential_duplicates:
-                group_hashes = {} # hash -> [paths]
+                group_hashes = {} 
                 for f in group:
                     h = AnalyzerService.get_quick_hash(f)
                     if h not in group_hashes: group_hashes[h] = []
                     group_hashes[h].append(str(f))
                 
-                # Filter actual duplicates
                 for h, paths in group_hashes.items():
                     if len(paths) > 1:
                         duplicate_images_count += (len(paths) - 1)
@@ -140,10 +146,15 @@ class AnalyzerService:
 
         # Phase 2: Labels
         yield json.dumps({"type": "log", "msg": "📝 Analyzing annotations..."}) + "\n"
-        
         processed_base = total_images 
         
         for i, img_file in enumerate(image_files):
+            # --- UNDERSTAND WHICH FOLDER WE ARE IN ---
+            img_parts = [p.lower() for p in img_file.parts]
+            img_split = 'train' # default
+            if 'val' in img_parts or 'valid' in img_parts: img_split = 'val'
+            elif 'test' in img_parts: img_split = 'test'
+            
             # Resolve Label Path
             label_file = None
             potential = img_file.with_suffix('.txt')
@@ -173,6 +184,7 @@ class AnalyzerService:
                             lines = content.splitlines()
                             seen_lines = set()
                             has_valid = False
+                            seen_classes_in_this_img = set() 
                             
                             for line in lines:
                                 line = line.strip()
@@ -188,7 +200,6 @@ class AnalyzerService:
                                     continue
                                 
                                 seen_lines.add(line)
-                                
                                 parts = line.split()
                                 if len(parts) >= 5:
                                     try:
@@ -196,8 +207,13 @@ class AnalyzerService:
                                         w = float(parts[3])
                                         h = float(parts[4])
                                         
-                                        class_counts[class_id] += 1
-                                        total_labels += 1
+                                        # Split and Global Update
+                                        temp_stats[img_split]['c_dist'][class_id] += 1
+                                        temp_stats['all']['c_dist'][class_id] += 1
+                                        temp_stats[img_split]['lbl'] += 1
+                                        temp_stats['all']['lbl'] += 1
+                                        
+                                        seen_classes_in_this_img.add(class_id) 
                                         has_valid = True
                                         
                                         area = w * h
@@ -206,6 +222,10 @@ class AnalyzerService:
                                         else: box_sizes['Large'] += 1
                                     except ValueError: continue
                             
+                            for c_id in seen_classes_in_this_img:
+                                temp_stats[img_split]['i_dist'][c_id] += 1
+                                temp_stats['all']['i_dist'][c_id] += 1
+                                
                             if not has_valid: background_images += 1
                 except Exception:
                     background_images += 1
@@ -223,17 +243,27 @@ class AnalyzerService:
                     "log": f"Reading labels for {img_file.name}"
                 }) + "\n"
 
-        # Final Stats Construction
-        avg_labels = total_labels / total_images if total_images > 0 else 0
-        class_dist = {classes.get(cid, f"class_{cid}"): count for cid, count in class_counts.items()}
+        # Construction of the SplitStat mega-object
+        final_split_stats = {}
+        for s in ['train', 'val', 'test', 'all']:
+            final_split_stats[s] = SplitStat(
+                total_images=temp_stats[s]['img'],
+                total_labels=temp_stats[s]['lbl'],
+                class_distribution={classes.get(cid, str(cid)): count for cid, count in temp_stats[s]['c_dist'].items()},
+                image_distribution={classes.get(cid, str(cid)): count for cid, count in temp_stats[s]['i_dist'].items()}
+            )
+
+        avg_labels = temp_stats['all']['lbl'] / total_images if total_images > 0 else 0
 
         final_stats = DatasetStats(
             dataset_id=dataset_id,
             name=yaml_path.stem,
             total_images=total_images,
-            total_labels=total_labels,
+            total_labels=temp_stats['all']['lbl'],
             classes=classes,
-            class_distribution=class_dist,
+            class_distribution=final_split_stats['all'].class_distribution,
+            image_distribution=final_split_stats['all'].image_distribution,
+            split_stats=final_split_stats, # <--- IL FRONTEND USERA' QUESTO
             image_paths=[str(p) for p in image_files[:20]],
             path=str(yaml_path),
             avg_labels_per_image=round(avg_labels, 2),
@@ -258,15 +288,13 @@ class AnalyzerService:
         if request.clean_images and request.duplicate_groups:
             for group in request.duplicate_groups:
                 if len(group) > 1:
-                    # Let's start from index 1 to skip (and therefore save) the original image
                     for img_path_str in group[1:]:
                         try:
                             img_path = Path(img_path_str)
                             if img_path.exists():
-                                img_path.unlink()  # Delete image
+                                img_path.unlink()
                                 deleted_images += 1
                                 
-                                # Try to delete the associated label.txt file as well
                                 lbl_file = None
                                 parts = list(img_path.parts)
                                 if 'images' in parts:
@@ -277,22 +305,28 @@ class AnalyzerService:
                                     lbl_file = img_path.with_suffix('.txt')
                                     
                                 if lbl_file and lbl_file.exists():
-                                    lbl_file.unlink() # Delete the label
+                                    lbl_file.unlink()
                         except Exception:
-                            pass # Ignore blocked or already removed files
+                            pass
                             
-        # 2. REMOVING DUPLICATE LABEL (Clears.txt files from overlapping lines)
+        # 2. REMOVING DUPLICATE LABEL (TURBO MULTI-THREADING)
         if request.clean_labels:
             yaml_path = Path(request.dataset_path)
             if yaml_path.exists():
                 dataset_dir = yaml_path.parent
                 
-                # Search for all.txt files in the dataset folder
-                for txt_file in dataset_dir.rglob("*.txt"):
-                    # We ignore text files that are not labels (e.g. README or classes.txt)
-                    if txt_file.name.lower() in ["classes.txt", "readme.txt", "readme.dataset.txt", "readme.roboflow.txt"]:
-                        continue
+                txt_files = []
+                for sub in ['train', 'val', 'valid', 'test', 'labels', 'images']:
+                    target = dataset_dir / sub
+                    if target.exists():
+                        txt_files.extend(target.rglob("*.txt"))
                         
+                txt_files = list(set(txt_files))
+                
+                def process_txt(txt_file):
+                    local_fixes = 0
+                    if txt_file.name.lower() in ["classes.txt", "readme.txt", "readme.dataset.txt", "readme.roboflow.txt"]:
+                        return 0
                     try:
                         with open(txt_file, 'r', encoding='utf-8') as f:
                             lines = f.read().splitlines()
@@ -303,21 +337,149 @@ class AnalyzerService:
                         
                         for line in lines:
                             val = line.strip()
-                            if not val:
-                                continue
-                                
+                            if not val: continue
                             if val in seen:
-                                fixed_labels += 1
+                                local_fixes += 1
                                 modified = True
                             else:
                                 seen.add(val)
                                 unique_lines.append(val)
                                 
-                        # If we have removed duplicates, we overwrite the clean file
                         if modified:
                             with open(txt_file, 'w', encoding='utf-8') as f:
                                 f.write('\n'.join(unique_lines) + '\n')
                     except Exception:
                         pass
+                    return local_fixes
+
+                with concurrent.futures.ThreadPoolExecutor() as executor:
+                    results = executor.map(process_txt, txt_files)
+                    fixed_labels = sum(results)
                         
-        return {"deleted_images": deleted_images, "fixed_labels": fixed_labels}    
+        return {"deleted_images": deleted_images, "fixed_labels": fixed_labels}
+    
+    @staticmethod
+    def resplit_dataset_generator(request):
+        yaml_path = Path(request.dataset_path)
+        root_path = yaml_path.parent
+        
+        if not getattr(request, 'output_folder', None):
+            target_root = root_path / "Resplit_Dataset"
+        else:
+            target_root = Path(request.output_folder)
+        
+        is_preview = getattr(request, 'is_preview', False)
+        
+        yield json.dumps({"type": "log", "msg": f"🚀 Preparing {'Preview' if is_preview else 'Dataset Copy'}..."}) + "\n"
+        
+        with open(yaml_path, 'r', encoding='utf-8') as f: 
+            config = yaml.safe_load(f)
+            
+        classes = config.get('names', {})
+        if isinstance(classes, list): classes = {i: name for i, name in enumerate(classes)}
+        elif isinstance(classes, dict): classes = {int(k): v for k, v in classes.items()}
+
+        all_images = []
+        for sub in ['train', 'val', 'valid', 'test']:
+            for img_dir in [root_path / sub, root_path / 'images' / sub]:
+                if img_dir.exists():
+                    all_images.extend([p for p in img_dir.rglob('*') if p.suffix.lower() in {'.jpg', '.jpeg', '.png', '.webp'}])
+        all_images = list(set(all_images))
+        
+        yield json.dumps({"type": "log", "msg": f"🔍 Analyzing {len(all_images)} labels for Stratification..."}) + "\n"
+        image_data = []
+        for i, img_path in enumerate(all_images):
+            lbl_path = None
+            parts = list(img_path.parts)
+            if 'images' in parts:
+                idx = len(parts) - 1 - parts[::-1].index('images')
+                parts[idx] = 'labels'
+                lbl_path = Path(*parts).with_suffix('.txt')
+            else: lbl_path = img_path.with_suffix('.txt')
+                
+            classes_in_img = set()
+            labels_in_img = Counter()
+            if lbl_path and lbl_path.exists():
+                try:
+                    with open(lbl_path, 'r') as f:
+                        for line in f:
+                            if line.strip(): 
+                                cid = int(float(line.split()[0]))
+                                classes_in_img.add(cid)
+                                labels_in_img[cid] += 1
+                except: pass
+                
+            image_data.append({'img': img_path, 'lbl': lbl_path if lbl_path and lbl_path.exists() else None, 'classes': list(classes_in_img), 'labels_count': labels_in_img})
+            if i % 200 == 0:
+                yield json.dumps({"type": "progress", "current": i, "total": len(all_images), "percent": round(i/len(all_images)*30, 1)}) + "\n"
+
+        yield json.dumps({"type": "log", "msg": "⚖️ Calculating Optimal Stratification..."}) + "\n"
+        random.seed(42)
+        random.shuffle(image_data)
+        
+        targets = {'train': request.train_pct / 100.0, 'val': request.val_pct / 100.0, 'test': request.test_pct / 100.0}
+        splits = {'train': [], 'val': [], 'test': []}
+        class_counts = {'train': Counter(), 'val': Counter(), 'test': Counter()}
+        
+        priority_classes = getattr(request, 'priority_classes', [])
+        priority_ids = [k for k, v in classes.items() if v in priority_classes]
+
+        for item in image_data:
+            scores = {'train': 0, 'val': 0, 'test': 0}
+            for s in ['train', 'val', 'test']:
+                total_assigned = max(1, len(splits['train']) + len(splits['val']) + len(splits['test']))
+                current_ratio = len(splits[s]) / total_assigned
+                score = targets[s] - current_ratio 
+                for c in item['classes']:
+                    total_c = max(1, class_counts['train'][c] + class_counts['val'][c] + class_counts['test'][c])
+                    c_ratio = class_counts[s][c] / total_c
+                    weight = 5.0 if c in priority_ids else 1.0
+                    score += (targets[s] - c_ratio) * weight
+                scores[s] = score
+            best_split = max(scores, key=scores.get)
+            splits[best_split].append(item)
+            for c in item['classes']: class_counts[best_split][c] += item['labels_count'][c]
+                
+        if is_preview:
+            preview_stats = {}
+            global_class_counts = Counter()
+            for s in ['train', 'val', 'test']:
+                for c, count in class_counts[s].items(): global_class_counts[c] += count
+            for s in ['train', 'val', 'test']:
+                lbl_dist = {classes.get(cid, str(cid)): count for cid, count in class_counts[s].items()}
+                preview_stats[s] = {"images": len(splits[s]), "total_labels": sum(class_counts[s].values()), "labels_distribution": lbl_dist, "target_pct": targets[s] * 100}
+            yield json.dumps({"type": "preview_result", "data": preview_stats, "global_totals": {classes.get(cid, str(cid)): count for cid, count in global_class_counts.items()}}) + "\n"
+            return
+
+        yield json.dumps({"type": "log", "msg": f"🚚 Copying files to: {target_root}..."}) + "\n"
+        for s in ['train', 'val', 'test']:
+            (target_root / 'images' / s).mkdir(parents=True, exist_ok=True)
+            (target_root / 'labels' / s).mkdir(parents=True, exist_ok=True)
+            
+        processed, total_files = 0, len(image_data)
+        for s, items in splits.items():
+            for item in items:
+                img_dest = target_root / 'images' / s / item['img'].name
+                try: shutil.copy2(str(item['img']), str(img_dest))
+                except: pass
+                
+                if item['lbl'] and item['lbl'].exists():
+                    lbl_dest = target_root / 'labels' / s / item['lbl'].name
+                    try: shutil.copy2(str(item['lbl']), str(lbl_dest))
+                    except: pass
+                
+                processed += 1
+                if processed % 100 == 0:
+                    yield json.dumps({"type": "progress", "current": processed, "total": total_files, "percent": 30 + round(processed/total_files*65, 1)}) + "\n"
+
+        yield json.dumps({"type": "log", "msg": "📝 Generating new data.yaml..."}) + "\n"
+        new_config = config.copy()
+        new_config['path'] = str(target_root.absolute())
+        new_config['train'] = "images/train"
+        new_config['val'] = "images/val"
+        new_config['test'] = "images/test"
+        
+        with open(target_root / 'data.yaml', 'w', encoding='utf-8') as f:
+            yaml.dump(new_config, f, sort_keys=False)
+
+        yield json.dumps({"type": "complete", "data": f"Dataset copied and re-split successfully in {target_root}"}) + "\n"

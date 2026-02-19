@@ -1,8 +1,8 @@
 // frontend/src/pages/AnalyzerPage.jsx
 import { useState, useEffect, useRef } from 'react'
-import { Search, AlertCircle, FolderOpen, FileSearch, PieChart as PieIcon, Layers, Image as ImageIcon, Copy, AlertTriangle, Trash2, ArrowRight, ArrowLeft, CheckCircle2, RefreshCw, BarChart3, Terminal } from 'lucide-react'
+import { Search, AlertCircle, FolderOpen, FileSearch, PieChart as PieIcon, Layers, Image as ImageIcon, Copy, AlertTriangle, Trash2, ArrowRight, ArrowLeft, CheckCircle2, RefreshCw, BarChart3, Terminal, FolderSync, Calculator, Save, Target } from 'lucide-react'
 import { api } from '../lib/api'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, ComposedChart } from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, ComposedChart, LabelList } from 'recharts'
 import { useDatasetStore } from '../hooks/useDatasetStore'
 import { createPortal } from 'react-dom'
 
@@ -11,6 +11,16 @@ const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'
 export default function AnalyzerPage() {
   const { stats, setStats, setCurrentDataset } = useDatasetStore()
   
+  const [splitFilter, setSplitFilter] = useState('all'); 
+  const [folderClassFilter, setFolderClassFilter] = useState('All Classes');
+  
+  const [showResplitModal, setShowResplitModal] = useState(false);
+  const [resplitPct, setResplitPct] = useState({ train: 80, val: 10, test: 10 });
+  const [outputFolder, setOutputFolder] = useState('');
+  const [priorityClasses, setPriorityClasses] = useState([]);
+  const [previewData, setPreviewData] = useState(null);
+  const [previewGlobalTotals, setPreviewGlobalTotals] = useState(null);
+
   const [pathInput, setPathInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -40,8 +50,18 @@ export default function AnalyzerPage() {
     } catch (err) { console.error(err) }
   }
 
-  
-  const runAnalysis = async (path) => {
+  // Choose Output folder
+  const handleBrowseOutputFolder = async () => {
+    try {
+      const response = await fetch('http://localhost:8000/api/analyze/browse_folder');
+      const data = await response.json();
+      if (data.path) setOutputFolder(data.path);
+    } catch (err) { console.error("Error browsing folder", err); }
+  }
+
+  const runAnalysis = async (path, overrideSplit = null) => {
+    const targetSplit = overrideSplit || splitFilter;
+
     setLoading(true); 
     setError(null); 
     setSuccessMsg(null); 
@@ -55,50 +75,35 @@ export default function AnalyzerPage() {
         const response = await fetch('http://localhost:8000/api/analyze/local', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ path: cleanPath })
+            body: JSON.stringify({ path: cleanPath, split: targetSplit })
         })
 
         const reader = response.body.getReader()
         const decoder = new TextDecoder()
         
-        // BUFFER PER GESTIRE I CHUNK TAGLIATI A META'
         let buffer = '';
 
         while(true) {
             const { done, value } = await reader.read()
             if (done) break
             
-            // Aggiungiamo i nuovi dati scaricati al nostro buffer
             buffer += decoder.decode(value, { stream: true })
-            
-            // Dividiamo per andare a capo
             const lines = buffer.split('\n')
-            
-            // L'ultima riga potrebbe essere tagliata a metà. 
-            // La togliamo dall'array e la teniamo nel buffer per il prossimo ciclo!
             buffer = lines.pop();
 
             for (const line of lines) {
                 if (line.trim() === '') continue;
                 try {
                     const data = JSON.parse(line)
-                    
                     if (data.type === 'log') {
                         setLogs(prev => [...prev, data.msg])
-                    } 
-                    else if (data.type === 'progress') {
-                        setProgress({
-                            current: data.current,
-                            total: data.total,
-                            percent: data.percent
-                        })
-                    }
-                    else if (data.type === 'complete') {
+                    } else if (data.type === 'progress') {
+                        setProgress({ current: data.current, total: data.total, percent: data.percent })
+                    } else if (data.type === 'complete') {
                         setStats(data.data)
                         setCurrentDataset(data.data)
                         setLoading(false)
-                    }
-                    else if (data.type === 'error') {
+                    } else if (data.type === 'error') {
                         setError(data.msg)
                         setLoading(false)
                     }
@@ -106,7 +111,6 @@ export default function AnalyzerPage() {
             }
         }
         
-        // Alla fine dello stream, se è rimasto un ultimo pezzo valido nel buffer, lo processiamo
         if (buffer.trim() !== '') {
             try {
                 const data = JSON.parse(buffer)
@@ -117,7 +121,6 @@ export default function AnalyzerPage() {
                 }
             } catch (e) { console.error("Final parse error", e) }
         }
-
     } catch (err) { 
         setError("Connection failed. Check backend.")
         setLoading(false)
@@ -130,19 +133,62 @@ export default function AnalyzerPage() {
     runAnalysis(pathInput)
   }
 
-  // Modal Configuration Cleaning
+  const runResplit = async (isPreview = false) => {
+      if (!isPreview) setShowResplitModal(false);
+      setLoading(true); setLogs([]); setProgress({current:0, total:0, percent:0}); setPreviewData(null);
+      const cleanPath = pathInput.replace(/"/g, '');
+      try {
+          const response = await fetch('http://localhost:8000/api/analyze/resplit', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ 
+                  dataset_path: cleanPath, 
+                  train_pct: resplitPct.train, val_pct: resplitPct.val, test_pct: resplitPct.test,
+                  priority_classes: priorityClasses,
+                  output_folder: outputFolder,
+                  is_preview: isPreview
+              })
+          });
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder();
+          let buffer = '';
+          while(true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              buffer += decoder.decode(value, { stream: true });
+              const lines = buffer.split('\n');
+              buffer = lines.pop();
+              for (const line of lines) {
+                  if (line.trim() === '') continue;
+                  try {
+                      const data = JSON.parse(line);
+                      if (data.type === 'log') setLogs(prev => [...prev, data.msg]);
+                      else if (data.type === 'progress') setProgress(data);
+                      else if (data.type === 'preview_result') {
+                          setPreviewData(data.data);
+                          setPreviewGlobalTotals(data.global_totals);
+                          setLoading(false);
+                      }
+                      else if (data.type === 'complete') {
+                          setSuccessMsg("Dataset re-split successfully! Reloading analysis...");
+                          setTimeout(() => runAnalysis(pathInput), 2000); 
+                      }
+                  } catch(e) {}
+              }
+          }
+      } catch (err) { setError("Re-split failed."); setLoading(false); }
+  }
+
   const promptCleanup = (type) => {
     if (type === 'images') {
         setModalConfig({
-            type: 'images',
-            title: 'Remove Duplicate Images?',
+            type: 'images', title: 'Remove Duplicate Images?',
             msg: `${stats.duplicate_images} duplicate images will be permanently deleted from disk. Only the first copy found for each group will be kept.`
         })
     } else if (type === 'labels') {
         const dupLabelCount = Object.values(stats.duplicate_labels || {}).reduce((a,b)=>a+b,0)
         setModalConfig({
-            type: 'labels',
-            title: 'Fix Duplicate Labels?',
+            type: 'labels', title: 'Fix Duplicate Labels?',
             msg: `${dupLabelCount} duplicate boxes (same class, same coordinates) will be removed from annotation files.`
         })
     }
@@ -153,7 +199,6 @@ export default function AnalyzerPage() {
     setModalOpen(false)
     setLoading(true) 
     setLogs(["🧹 Cleaning up disk...", "Applying changes..."])
-    
     try {
         const result = await api.cleanupDataset({
             dataset_path: stats.path,
@@ -161,15 +206,8 @@ export default function AnalyzerPage() {
             clean_images: modalConfig.type === 'images',
             clean_labels: modalConfig.type === 'labels'
         })
-        
-        // success
         setSuccessMsg(`Cleanup Completed: Deleted ${result.deleted_images} images and fixed ${result.fixed_labels} labels.`)
-        
-        // Auto-Refresh
-        setTimeout(() => {
-            runAnalysis(pathInput)
-        }, 1500)
-
+        setTimeout(() => { runAnalysis(pathInput) }, 1500)
     } catch (err) {
         setError("Critical error during cleanup: " + err.message)
         setLoading(false)
@@ -177,7 +215,11 @@ export default function AnalyzerPage() {
   }
 
   // --- DATA PREPARATION  ---
-  const barData = stats?.class_distribution ? Object.entries(stats.class_distribution)
+  
+  const activeStats = stats?.split_stats?.[splitFilter] || stats; 
+  const availableClasses = stats?.classes ? Object.values(stats.classes) : [];
+
+  const barData = activeStats?.class_distribution ? Object.entries(activeStats.class_distribution)
     .sort((a,b) => b[1] - a[1]) 
     .map(([name, count]) => ({ name, count })) : []
 
@@ -186,10 +228,92 @@ export default function AnalyzerPage() {
     { name: 'Medium (0.3-3%)', value: stats.box_size_distribution?.Medium || 0 },
     { name: 'Large (>3%)', value: stats.box_size_distribution?.Large || 0 },
   ].filter(d => d.value > 0) : []
+
+  const getFolderChartData = () => {
+      if (!stats?.split_stats) return [];
+      const res = [];
+      let totalImgs = 0, totalLbls = 0;
+      
+      for (const s of ['train', 'val', 'test']) {
+          const sObj = stats.split_stats[s];
+          if (!sObj) continue;
+          totalImgs += (sObj.total_images || 0);
+          totalLbls += (sObj.total_labels || 0);
+      }
+
+      for (const s of ['train', 'val', 'test']) {
+          const sObj = stats.split_stats[s];
+          if (!sObj) continue;
+          
+          let imgs = 0, lbls = 0;
+          if (folderClassFilter === 'All Classes') {
+              imgs = sObj.total_images || 0; 
+              lbls = sObj.total_labels || 0;
+          } else {
+              imgs = sObj.image_distribution?.[folderClassFilter] || 0;
+              lbls = sObj.class_distribution?.[folderClassFilter] || 0;
+          }
+          
+          res.push({ 
+              name: s.toUpperCase(), 
+              Images: imgs, 
+              Labels: lbls,
+              ImagesPct: imgs > 0 ? `${imgs} (${Math.round((imgs/totalImgs)*100)}%)` : '',
+              LabelsPct: lbls > 0 ? `${lbls} (${Math.round((lbls/totalLbls)*100)}%)` : ''
+          });
+      }
+      return res;
+  }
+  const folderChartData = getFolderChartData();
+
+  // Folder Data with percentage calculation on bars
+  const getSplitDataWithPct = () => {
+      // Usiamo split_stats (come inviato dal backend) e non split_distribution
+      if (!stats?.split_stats) return [];
+      
+      const trainImg = stats.split_stats.train?.total_images || 0;
+      const trainLbl = stats.split_stats.train?.total_labels || 0;
+      const valImg = stats.split_stats.val?.total_images || 0;
+      const valLbl = stats.split_stats.val?.total_labels || 0;
+      const testImg = stats.split_stats.test?.total_images || 0;
+      const testLbl = stats.split_stats.test?.total_labels || 0;
+
+      const totalImg = trainImg + valImg + testImg;
+
+      // Funzione per creare l'etichetta dell'asse X (es: TRAIN (80%))
+      const formatName = (name, count) => {
+          const pct = totalImg > 0 ? Math.round((count / totalImg) * 100) : 0;
+          return `${name.toUpperCase()} (${pct}%)`;
+      };
+
+      return [
+          { 
+              name: 'Train', 
+              displayName: formatName('Train', trainImg),
+              Images: trainImg, 
+              Labels: trainLbl 
+          },
+          { 
+              name: 'Validation', 
+              displayName: formatName('Val', valImg),
+              Images: valImg, 
+              Labels: valLbl 
+          },
+          { 
+              name: 'Test', 
+              displayName: formatName('Test', testImg),
+              Images: testImg, 
+              Labels: testLbl 
+          }
+      ].filter(d => d.Images > 0 || d.Labels > 0);
+  };
+  const splitData = getSplitDataWithPct();
   
   const dupGroups = stats?.duplicate_groups || []
   const hasDupImages = dupGroups.length > 0
   const totalDupLabels = stats?.duplicate_labels ? Object.values(stats.duplicate_labels).reduce((a,b)=>a+b,0) : 0
+
+  const togglePriority = (c) => setPriorityClasses(prev => prev.includes(c) ? prev.filter(x => x !== c) : [...prev, c]);
 
   return (
     <div className="space-y-6 relative min-h-screen pb-20">
@@ -219,7 +343,23 @@ export default function AnalyzerPage() {
       <div className="bg-slate-800/80 backdrop-blur-sm rounded-xl p-6 border border-slate-700 shadow-xl">
         <form onSubmit={handleAnalyzeSubmit} className="space-y-4">
             <div>
-                <label className="block text-sm font-semibold text-slate-300 mb-2 uppercase tracking-wide">Dataset Location (data.yaml)</label>
+                <div className="flex justify-between items-end mb-2">
+                    <label className="block text-sm font-semibold text-slate-300 uppercase tracking-wide">Dataset Location (data.yaml)</label>
+                    
+                    {/* FILTER BUTTONS */}
+                    <div className="flex gap-1 bg-slate-900/50 p-1 rounded-lg border border-slate-700">
+                        {['all', 'train', 'val', 'test'].map(s => (
+                            <button 
+                                key={s} type="button"
+                                onClick={() => setSplitFilter(s)} 
+                                className={`px-4 py-1.5 rounded-md font-bold text-xs uppercase transition-all ${splitFilter === s ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
+                            >
+                                {s}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
                 <div className="flex gap-3">
                     <button type="button" onClick={handleBrowse} className="bg-slate-700 hover:bg-slate-600 border border-slate-600 text-white px-5 rounded-lg transition-all hover:shadow-lg flex items-center justify-center"><FolderOpen size={20} /></button>
                     <div className="relative flex-1">
@@ -250,8 +390,8 @@ export default function AnalyzerPage() {
             
             {/* KPI CARDS */}
             <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-                <StatCard label="Images" value={stats.total_images} icon={<ImageIcon size={20} />} delay={0} />
-                <StatCard label="Labels" value={stats.total_labels} icon={<Layers size={20} />} delay={100} />
+                <StatCard label={`${splitFilter.toUpperCase()} Images`} value={activeStats.total_images || 0} icon={<ImageIcon size={20} />} delay={0} />
+                <StatCard label={`${splitFilter.toUpperCase()} Labels`} value={activeStats.total_labels || 0} icon={<Layers size={20} />} delay={100} />
                 <StatCard label="Classes" value={stats.classes ? Object.keys(stats.classes).length : 0} icon={<PieIcon size={20} />} delay={200} />
                 <StatCard label="Dup Images" value={stats.duplicate_images} icon={<Copy size={20} />} color={stats.duplicate_images > 0 ? "text-red-400" : "text-slate-400"} delay={300} />
                 <StatCard label="Dup Labels" value={totalDupLabels} icon={<AlertTriangle size={20} />} color={totalDupLabels > 0 ? "text-amber-400" : "text-slate-400"} delay={400} />
@@ -322,7 +462,6 @@ export default function AnalyzerPage() {
                                 <Legend verticalAlign="bottom" height={36} iconType="circle" />
                             </PieChart>
                         </ResponsiveContainer>
-                        {/* Center Text */}
                         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-[60%] text-center pointer-events-none">
                             <span className="text-3xl font-bold text-white">{stats.total_labels.toLocaleString()}</span>
                             <span className="block text-xs text-slate-400 uppercase tracking-wider">Objects</span>
@@ -330,6 +469,37 @@ export default function AnalyzerPage() {
                     </div>
                 </div>
             </div>
+
+            {/* SPLIT DISTRIBUTION CHART WITH LABEL OF % */}
+                <div className="lg:col-span-3 bg-slate-800/60 backdrop-blur-sm rounded-xl p-6 border border-slate-700 shadow-xl mt-6">
+                    <div className="flex items-center justify-between mb-6">
+                        <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                            <FolderOpen className="text-purple-400" /> Folder Distribution
+                        </h3>
+                        <span className="text-xs text-slate-400 bg-slate-900 px-2 py-1 rounded border border-slate-700">Images vs Labels per Split</span>
+                    </div>
+                    <div className="h-[300px] w-full mt-4">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={splitData} margin={{ top: 25, right: 30, left: 0, bottom: 0 }}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+                                
+                                <XAxis dataKey="displayName" stroke="#94a3b8" fontSize={12} fontWeight="bold" />
+                                
+                                <YAxis stroke="#94a3b8" fontSize={11} />
+                                
+                                <Tooltip 
+                                    contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '8px' }}
+                                    itemStyle={{ color: '#fff' }}
+                                />
+                                <Legend wrapperStyle={{ paddingTop: '20px' }}/>
+                                
+                                <Bar dataKey="Images" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={50} />
+                                
+                                <Bar dataKey="Labels" fill="#10b981" radius={[4, 4, 0, 0]} barSize={50} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                                    </div>
 
             {/* --- DATA CLEANING SECTION --- */}
             {(hasDupImages || totalDupLabels > 0) && (
@@ -437,10 +607,24 @@ export default function AnalyzerPage() {
                     </div>
                 </div>
             )}
+
+            {/* --- DATASET OPERATIONS (Re-Split) --- */}
+            <div className="mt-10 pt-10 border-t border-slate-700">
+                <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
+                    <FolderSync className="text-blue-400" /> Dataset Operations - Stratified Split
+                </h2>
+                <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6">
+                    <p className="text-slate-400 mb-4">Rebalance your dataset by recalculating percentages for Train, Val, and Test. The algorithm will automatically keep the distribution of rare classes in equilibrium.</p>
+                    <button onClick={() => {setShowResplitModal(true); setPreviewData(null);}} className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 shadow-lg">
+                        <FolderSync size={20}/> Stratified Re-Split Engine
+                    </button>
+                </div>
+            </div>
+
         </div>
       )}
 
-      {/* --- MODAL CONFIRMS --- */}
+      {/* --- MODAL CONFIRMS (CLEANUP) --- */}
       {modalOpen && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center px-4">
             <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setModalOpen(false)}></div>
@@ -480,6 +664,128 @@ export default function AnalyzerPage() {
         </div>
       )}
 
+      {/* --- ADVANCED RE-SPLIT MODAL WITH PRESETS AND FOLDER BROWSER --- */}
+      {showResplitModal && (
+          <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto">
+              <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-4xl shadow-2xl animate-in zoom-in-95 my-8">
+                  <h2 className="text-2xl font-bold text-white mb-2 flex items-center gap-2"><FolderSync className="text-blue-400"/> Stratified Re-Split Engine</h2>
+                  <p className="text-sm text-slate-400 mb-6 border-b border-slate-700 pb-4">Define splits, set priorities, and generate a live preview.</p>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-6">
+                      {/* LEFT: Sliders and Output Folder */}
+                      <div className="space-y-6">
+                          <div>
+                                {/* Preset Percentuali */}
+                                <div className="flex justify-between items-end mb-3">
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Split Percentages</label>
+                                    <div className="flex gap-2">
+                                        <button onClick={() => setResplitPct({train: 80, val: 10, test: 10})} className="text-[10px] bg-slate-700 hover:bg-slate-600 text-slate-300 px-2 py-1 rounded transition-colors">80/10/10</button>
+                                        <button onClick={() => setResplitPct({train: 70, val: 20, test: 10})} className="text-[10px] bg-slate-700 hover:bg-slate-600 text-slate-300 px-2 py-1 rounded transition-colors">70/20/10</button>
+                                        <button onClick={() => setResplitPct({train: 85, val: 10, test: 5})} className="text-[10px] bg-slate-700 hover:bg-slate-600 text-slate-300 px-2 py-1 rounded transition-colors">85/10/5</button>
+                                    </div>
+                                </div>
+
+                                
+                              {['train', 'val', 'test'].map(split => (
+                                  <div key={split} className="flex items-center gap-4 mb-2">
+                                      <label className="text-slate-300 w-12 uppercase font-bold text-sm">{split}</label>
+                                      <input type="range" min="0" max="100" value={resplitPct[split]} 
+                                          onChange={(e) => setResplitPct({...resplitPct, [split]: parseInt(e.target.value)})}
+                                          className="flex-1 accent-blue-500" />
+                                      <span className="text-white font-mono w-12 text-right">{resplitPct[split]}%</span>
+                                  </div>
+                              ))}
+                              
+                              {(resplitPct.train + resplitPct.val + resplitPct.test) !== 100 && (
+                                  <div className="text-red-400 text-xs mt-2 font-bold bg-red-400/10 p-2 rounded">
+                                      Total must be exactly 100% (Current: {resplitPct.train + resplitPct.val + resplitPct.test}%)
+                                  </div>
+                              )}
+                          </div>
+
+                          {/* OUTPUT FOLDER BROWSER */}
+                          <div>
+                            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 block">Output Folder (Optional)</label>
+                            <div className="flex gap-2">
+                                <button onClick={handleBrowseOutputFolder} type="button" className="bg-slate-700 hover:bg-slate-600 px-3 py-2 rounded text-white border border-slate-600 transition-colors">
+                                    <FolderOpen size={16}/>
+                                </button>
+                                <input type="text" value={outputFolder} onChange={(e)=>setOutputFolder(e.target.value)} placeholder="Leave empty to use current path..." className="flex-1 bg-slate-900 border border-slate-600 rounded p-2 text-white text-sm outline-none focus:border-blue-500" />
+                            </div>
+                        </div>
+                      </div>
+
+                      {/* RIGHT: Priority classes */}
+                      <div>
+                          <label className="text-xs font-bold text-purple-400 uppercase tracking-wider mb-2 block flex items-center gap-1"><Target size={14}/> Priority Classes (5x Weight)</label>
+                          <p className="text-xs text-slate-500 mb-3">Select classes that must be strictly balanced. The algorithm will prioritize these over dominant classes to reach perfect label distribution.</p>
+                          <div className="flex flex-wrap gap-2 max-h-[150px] overflow-y-auto custom-scrollbar p-1">
+                              {availableClasses.map(c => (
+                                  <button key={c} onClick={() => togglePriority(c)} className={`px-3 py-1 rounded-full text-xs font-bold transition-all border ${priorityClasses.includes(c) ? 'bg-purple-600/20 border-purple-500 text-purple-300 shadow-lg shadow-purple-900/30' : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-slate-500'}`}>
+                                      {c}
+                                  </button>
+                              ))}
+                          </div>
+                      </div>
+                  </div>
+
+                  {/* PREVIEW TABLE  */}
+                  {previewData && previewGlobalTotals && (
+                    <div className="mb-6 bg-slate-900/50 rounded-xl border border-slate-700 p-4 animate-in fade-in slide-in-from-bottom-4">
+                        <h4 className="text-sm font-bold text-emerald-400 mb-3 flex items-center gap-2"><CheckCircle2 size={16}/> Live Preview Generated</h4>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm text-left whitespace-nowrap">
+                                <thead className="text-[11px] text-slate-400 uppercase border-b border-slate-700">
+                                    <tr>
+                                        <th className="pb-2">Split</th>
+                                        <th className="pb-2 text-right">Target</th>
+                                        <th className="pb-2 text-right">Images</th>
+                                        <th className="pb-2 text-right">Total Labels</th>
+                                        {priorityClasses.slice(0, 5).map(c => <th key={c} className="pb-2 text-right text-purple-400">{c} Labels</th>)}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {['train', 'val', 'test'].map(s => {
+                                        if (!previewData[s]) return null;
+                                        return (
+                                            <tr key={s} className="border-b border-slate-800/50 last:border-0 text-slate-300 hover:bg-slate-800/30 transition-colors">
+                                                <td className="py-2 uppercase font-bold">{s}</td>
+                                                <td className="py-2 text-right text-slate-500">{previewData[s].target_pct}%</td>
+                                                <td className="py-2 text-right font-mono text-blue-300">{previewData[s].images.toLocaleString()}</td>
+                                                <td className="py-2 text-right font-mono text-emerald-300">{previewData[s].total_labels.toLocaleString()}</td>
+                                                
+                                                {priorityClasses.slice(0, 5).map(c => {
+                                                    const classCount = previewData[s].labels_distribution[c] || 0;
+                                                    const classTotal = previewGlobalTotals[c] || 1;
+                                                    const pct = Math.round((classCount / classTotal) * 100);
+                                                    return (
+                                                        <td key={c} className="py-2 text-right font-mono text-purple-300">
+                                                            {classCount.toLocaleString()} 
+                                                            <span className={`text-[10px] ml-1 ${pct < (previewData[s].target_pct - 3) ? 'text-red-400' : 'text-slate-500'}`}>({pct}%)</span>
+                                                        </td>
+                                                    )
+                                                })}
+                                            </tr>
+                                        )
+                                    })}
+                                </tbody>
+                            </table>
+                            {priorityClasses.length > 5 && <p className="text-[10px] text-slate-500 text-right mt-2">+ {priorityClasses.length - 5} more priority classes hidden.</p>}
+                        </div>
+                    </div>
+                )}
+
+                  <div className="flex justify-between items-center mt-6 pt-4 border-t border-slate-700">
+                      <button onClick={() => setShowResplitModal(false)} className="px-4 py-2 text-slate-400 hover:text-white">Cancel</button>
+                      <div className="flex gap-3">
+                          <button onClick={() => runResplit(true)} disabled={(resplitPct.train + resplitPct.val + resplitPct.test) !== 100} className="px-4 py-2 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 text-white rounded-lg font-bold flex items-center gap-2"><Calculator size={16}/> Preview Split</button>
+                          <button onClick={() => runResplit(false)} disabled={(resplitPct.train + resplitPct.val + resplitPct.test) !== 100} className="px-6 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-lg font-bold shadow-lg shadow-emerald-900/50 flex items-center gap-2"><Save size={16}/> Apply & Spilt</button>
+                      </div>
+                  </div>
+              </div>
+          </div>
+      )}
+
       {/* --- LOADER: TERMINAL STYLE + PROGRESS --- */}
       {loading && createPortal(
         <div 
@@ -490,8 +796,8 @@ export default function AnalyzerPage() {
             <div className="flex items-center gap-4 mb-6">
               <div className="w-12 h-12 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin"></div>
               <div>
-                <h2 className="text-2xl font-bold text-white">Analyzing Dataset...</h2>
-                <p className="text-blue-300 font-mono">Deep scanning structure, hashing files, checking integrity.</p>
+                <h2 className="text-2xl font-bold text-white">Working...</h2>
+                <p className="text-blue-300 font-mono">Processing files and updating data.</p>
               </div>
             </div>
 

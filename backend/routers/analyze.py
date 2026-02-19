@@ -4,7 +4,7 @@ from pathlib import Path
 import uuid
 import os
 from services.analyzer import AnalyzerService
-from models.schemas import AnalyzePathRequest, DatasetStats, CleanupRequest
+from models.schemas import AnalyzePathRequest, DatasetStats, CleanupRequest, ResplitRequest
 from utils.dialogs import open_file_dialog 
 
 router = APIRouter()
@@ -30,7 +30,7 @@ async def analyze_local_dataset(request: AnalyzePathRequest):
     try:
         dataset_id = str(uuid.uuid4())
         return StreamingResponse(
-            analyzer.analyze_dataset_generator(request.path, dataset_id),
+            analyzer.analyze_dataset_generator(request.path, dataset_id, request.split),
             media_type="application/x-ndjson"
         )
     except Exception as e:
@@ -67,3 +67,27 @@ async def get_local_image(path: str):
         return FileResponse(file_path, media_type=media_type)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error serving image: {str(e)}")
+    
+@router.post("/resplit")
+async def resplit_dataset_endpoint(request: ResplitRequest):
+    try:
+        return StreamingResponse(
+            analyzer.resplit_dataset_generator(request),
+            media_type="application/x-ndjson"
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@router.get("/browse_folder")
+async def browse_folder_endpoint():
+    import tkinter as tk
+    from tkinter import filedialog
+    try:
+        root = tk.Tk()
+        root.withdraw()
+        root.attributes('-topmost', True) 
+        folder_path = filedialog.askdirectory(title="Select Output Folder")
+        root.destroy()
+        return {"path": folder_path}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

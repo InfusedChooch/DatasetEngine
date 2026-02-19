@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Any
 from enum import Enum
 
 # Analyzer
@@ -8,25 +8,44 @@ class DatasetStats(BaseModel):
     name: str
     total_images: int
     total_labels: int
-    classes: dict[int, str]
-    class_distribution: dict[str, int]
+    classes: Dict[int, str]
+    class_distribution: Dict[str, int]
+    image_distribution: Dict[str, int] = {}
+    split_stats: Dict[str, SplitStat] = {} 
     image_paths: List[str]
     path: str
     avg_labels_per_image: float
-    background_images: int  # Images without labels
-    box_size_distribution: Dict[str, int]  # Small, Medium, Large
+    background_images: int
+    box_size_distribution: Dict[str, int]
     duplicate_images: int
-    duplicate_labels: Dict[str, int] # Class Name -> Count of duplicate boxes
-    duplicate_groups: List[List[str]] = []
+    duplicate_labels: Dict[str, int]
+    duplicate_groups: List[List[str]]
 
 class AnalyzePathRequest(BaseModel):
     path: str
+    split: str = "all"
+
 
 class CleanupRequest(BaseModel):
     dataset_path: str
     duplicate_groups: List[List[str]]
-    clean_images: bool = True
-    clean_labels: bool = True
+    clean_images: bool = False
+    clean_labels: bool = False
+
+class SplitStat(BaseModel):
+    total_images: int = 0
+    total_labels: int = 0
+    class_distribution: Dict[str, int] = {}
+    image_distribution: Dict[str, int] = {}
+
+class ResplitRequest(BaseModel):
+    dataset_path: str
+    train_pct: int
+    val_pct: int
+    test_pct: int
+    priority_classes: List[str] = [] 
+    output_folder: str = ""          
+    is_preview: bool = False
 
 # Merger
 class DatasetInfo(BaseModel):
