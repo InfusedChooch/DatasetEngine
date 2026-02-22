@@ -17,14 +17,13 @@
   **An all-in-one local GUI to visualize, analyze, merge, and rapidly improve your Computer Vision datasets.**
   
   [🌟 Why Dataset Engine?](#-why-dataset-engine) •
+  [📦 Video Demo](#-video-demo) •
   [📦 Modules](#-modules) •
-  [✨ Key Features](#-key-features) •
-  [📸 UI Showcase](#-ui-showcase) •
-  [🔄 Pipeline & Modules](#-how-it-works) •  
   [🛠 Tech Stack](#-tech-stack) •
   [🚀 Getting Started](#-getting-started) • 
-  [📜 License](#-license) •
-  [👨‍💻 Author](#author)
+  [👨‍💻 Author](#-author) •
+  [📜 License](#-license) 
+  
   <br><br>
 
   **If you find Dataset Engine useful, please consider supporting the development!** <br>
@@ -161,49 +160,6 @@ Whether you have a messy dataset full of duplicates, need to merge datasets with
 
 ---
 
-## 📸 UI Showcase
-
-### The Viewer Module
-*Explore and filter your datasets visually without touching a single line of Python.*
-<div align="center">
-  <img src="public/viewer-screenshot.jpg" alt="Dataset Viewer" width="100%">
-</div>
-
-### Deep Analysis & Cleaning
-*Spot imbalances instantly and fix duplicate labels or images with built-in destructive (but safe) tools.*
-<div align="center">
-  <img src="public/analyzer-screenshot.jpg" alt="Dataset Analyzer" width="100%">
-</div>
-
-### Intelligent Dataset Merging
-*A visual mapping matrix to route classes from multiple sources into a unified, clean dataset.*
-<div align="center">
-  <img src="public/merger-screenshot.jpg" alt="Dataset Merger" width="100%">
-</div>
-
-### Built-in Annotation Canvas
-*Fix your model's mistakes manually using intuitive drawing and selection tools, just like a pro editor.*
-<div align="center">
-  <img src="public/editor-screenshot.jpg" alt="Annotation Editor" width="100%">
-</div>
-
----
-
-## 🔄 How It Works (The Improver Loop)
-
-<div align="center">
-  
-  ![Improver Pipeline](public/pipeline.png)
-  
-</div>
-
-1. **Test:** Feed a raw video and your current `best.pt` YOLO model to the Engine.
-2. **Review:** Use the *Fast Review* grid to quickly spot where the model messed up.
-3. **Correct:** Enter the *Annotation Editor* to delete wrong boxes and draw the correct ones.
-4. **Export & Retrain:** Export the newly corrected frames and merge them with your original dataset to train a smarter model.
-
----
-
 ## 🛠 Tech Stack
 
 ### Backend Stack
@@ -225,7 +181,6 @@ Whether you have a messy dataset full of duplicates, need to merge datasets with
 dataset-engine/
 │
 ├── backend/                           # FastAPI Backend
-│   ├── BEvenv/                        # Virtual Environment (Generated)
 │   ├── models/                        # YOLO Model storage
 │   ├── routers/                       # API Endpoints (viewer, analyze, etc.)
 │   ├── services/                      # Core business logic & file processing
@@ -264,13 +219,13 @@ Open a terminal and navigate to the backend folder:
 cd backend
 
 # Create a virtual environment (Recommended)
-python -m venv BEvenv
+python -m venv venv
 
 # Activate the virtual environment
 # On Windows:
-BEvenv\Scripts\activate
+venv\Scripts\activate
 # On macOS/Linux:
-source BEvenv/bin/activate
+source venv/bin/activate
 
 # Install dependencies
 pip install -r requirements.txt
@@ -311,7 +266,6 @@ You are ready to manage your datasets!
 
 **Dataset Engine** is created and maintained by **sPappalard**.
 
-If you find this project useful, please give it a ⭐ star or support the development!
 
 <div align="center">
 
@@ -349,10 +303,10 @@ SOFTWARE.
 ---
 
 <div align="center">
+  **Built with ❤️ by [@sPappalard](https://github.com/sPappalard)**
 
-**Built with ❤️ by [@sPappalard**](https://github.com/sPappalard)
-
-[⬆ Back to Top](#readme-top))
+  [⬆ Back to Top](#readme-top)
+</div>
 
 </div>
 
