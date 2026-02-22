@@ -68,7 +68,7 @@ Whether you have a messy dataset full of duplicates, need to merge datasets with
 
 <div align="center">
 <a href="https://www.youtube.com/watch?v=VpzodTreVAQ">
-<img src="https://img.youtube.com/vi/VpzodTreVAQ/maxresdefault.jpg" alt="Viewer Demo" width="80%">
+<img src="https://img.youtube.com/vi/VpzodTreVAQ/maxresdefault.jpg" alt="Viewer Demo" width="100%">
 </a>
 </div>
 
@@ -85,8 +85,8 @@ Whether you have a messy dataset full of duplicates, need to merge datasets with
 *Instant health metrics for data-driven decisions.*
 
 <div align="center">
-<a href="[https://www.youtube.com/watch?v=ID_VIDEO_ANALYZER](https://www.google.com/search?q=https://www.youtube.com/watch%3Fv%3DID_VIDEO_ANALYZER)">
-<img src="[https://img.youtube.com/vi/ID_VIDEO_ANALYZER/maxresdefault.jpg](https://www.google.com/search?q=https://img.youtube.com/vi/ID_VIDEO_ANALYZER/maxresdefault.jpg)" alt="Analyzer Demo" width="80%">
+<a href="https://www.youtube.com/watch?v=mCTK3ocVdro>"
+<img src="https://img.youtube.com/vi/mCTK3ocVdro/maxresdefault.jpg" alt="Analyzer Demo" width="100%">
 </a>
 </div>
 
@@ -104,8 +104,8 @@ Whether you have a messy dataset full of duplicates, need to merge datasets with
 *Consolidate disparate data sources into a unified powerhouse.*
 
 <div align="center">
-<a href="[https://www.youtube.com/watch?v=ID_VIDEO_MERGER](https://www.google.com/search?q=https://www.youtube.com/watch%3Fv%3DID_VIDEO_MERGER)">
-<img src="[https://img.youtube.com/vi/ID_VIDEO_MERGER/maxresdefault.jpg](https://www.google.com/search?q=https://img.youtube.com/vi/ID_VIDEO_MERGER/maxresdefault.jpg)" alt="Merger Demo" width="80%">
+<a href="https://www.youtube.com/watch?v=vDLzeiZdWQ0">
+<img src="https://img.youtube.com/vi/vDLzeiZdWQ0/maxresdefault.jpg" alt="Merger Demo" width="100%">
 </a>
 </div>
 
@@ -122,8 +122,8 @@ Whether you have a messy dataset full of duplicates, need to merge datasets with
 *Target model blind spots and close the active learning loop.*
 
 <div align="center">
-<a href="[https://www.youtube.com/watch?v=ID_VIDEO_IMPROVER](https://www.google.com/search?q=https://www.youtube.com/watch%3Fv%3DID_VIDEO_IMPROVER)">
-<img src="[https://img.youtube.com/vi/ID_VIDEO_IMPROVER/maxresdefault.jpg](https://www.google.com/search?q=https://img.youtube.com/vi/ID_VIDEO_IMPROVER/maxresdefault.jpg)" alt="Improver Demo" width="80%">
+<a href="https://www.youtube.com/watch?v=wD4lvi7nsVw">
+<img src="https://img.youtube.com/vi/wD4lvi7nsVw/maxresdefault.jpg" alt="Improver Demo" width="100%">
 </a>
 </div>
 
