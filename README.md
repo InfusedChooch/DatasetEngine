@@ -258,8 +258,6 @@ You are ready to manage your datasets!
 
 ---
 
-<a name="author"></a>
-
 ## 👨‍💻 Author
 
 **Dataset Engine** is created and maintained by **sPappalard**.
