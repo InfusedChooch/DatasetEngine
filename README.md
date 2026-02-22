@@ -68,15 +68,15 @@ Whether you have a messy dataset full of duplicates, need to merge datasets with
 *Gain full transparency into your data assets.*
 
 <div align="center">
-<a href="[https://www.youtube.com/watch?v=VpzodTreVAQ]">
-<img src="[https://img.youtube.com/vi/VpzodTreVAQ/maxresdefault.jpg]" alt="Watch Viewer Demo Video" width="100%">
+<a href="https://www.youtube.com/watch?v=VpzodTreVAQ">
+<img src="https://img.youtube.com/vi/VpzodTreVAQ/maxresdefault.jpg" alt="Watch Viewer Demo Video" width="100%">
 </a>
 
 
 
 
 
-<b>🎬 <a href="[https://www.youtube.com/watch?v=VpzodTreVAQ]">Click here to watch the full Viewer Demo</a></b>
+<b>🎬 <a href="https://www.youtube.com/watch?v=VpzodTreVAQ">Click here to watch the full Viewer Demo</a></b>
 </div>
 
 **Key Features:**
