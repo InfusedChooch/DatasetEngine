@@ -16,7 +16,8 @@
   
   **An all-in-one local GUI to visualize, analyze, merge, and rapidly improve your Computer Vision datasets.**
   
-  [🌟 Overview](#-overview) • 
+  [🌟 Why Dataset Engine?](#-why-dataset-engine) •
+  [📦 Modules & Demos](#-modules--demos) 
   [✨ Key Features](#-key-features) •
   [📸 UI Showcase](#-ui-showcase) •
   [🔄 Pipeline & Modules](#-how-it-works) •  
@@ -35,7 +36,16 @@
 
 ---
 
-## 🌟 Overview
+## 🌟 Why Dataset Engine?
+
+As a **Product/Project Manager** building AI-driven apps, I noticed that the biggest bottleneck wasn't the algorithm—it was the data quality and the lack of intuitive tools to manage it locally.
+I built **Dataset Engine** to solve a personal need: a **100% local tool** that provides total control over the data lifecycle. I needed to:
+
+* **Visualize** datasets with deep filtering to understand exactly what my model was seeing.
+* **Merge** multiple datasets using custom configurations to prevent class conflicts.
+* **Clean** data by removing duplicates and fixing overlapping labels that ruin training.
+* **Summarize** dataset health through an instant, high-level dashboard.
+* **Improve** models by using my own `best.pt` weights to find where the model fails and fixing those specific frames using an intuitive, custom-built editor.
 
 **Dataset Engine** is an advanced, 100% locally-hosted studio designed to solve the most painful parts of building Object Detection models. 
 Whether you have a messy dataset full of duplicates, need to merge datasets with conflicting class names, or want to rapidly test your YOLO model on a video to find and fix its blind spots—Dataset Engine handles it all through a blazing-fast React interface.
@@ -45,43 +55,84 @@ Whether you have a messy dataset full of duplicates, need to merge datasets with
 - **Zero Cloud Costs:** Everything runs locally on your machine. No data leaves your computer, ensuring absolute privacy for sensitive industrial or medical datasets.
 - **Smart Data Cleaning:** Automatically detects completely identical images and overlapping/duplicate bounding boxes, fixing them with a single click.
 - **Active Learning Loop (Improver):** Test your `.pt` YOLO weights directly on raw videos. The system auto-extracts frames, runs inference, lets you flag failures, and provides a Photoshop-style canvas to correct the annotations for your next training run.
+- **Instant Health Audit:** A high-level dashboard provides immediate insights into class distribution, object density, and split ratios, allowing for data-driven decisions before starting model training.
 - **Format Agnostic:** Natively supports standard YOLO formats, perfectly handling structures like `images/train` and `labels/train`, or the typical Roboflow `../valid/images` exports without breaking.
 
 ---
 
-## 🎬 Demo
+## 📦 Modules & Demos
+
+### 🔍 1. The Viewer (Visibility)
+
+*Gain full transparency into your data assets.*
 
 <div align="center">
-  
-  **Watch Dataset Engine in Action**
-  
-  [![Dataset Engine Demo](https://img.youtube.com/vi/YOUR_VIDEO_ID/maxresdefault.jpg)](https://www.youtube.com/watch?v=YOUR_VIDEO_ID)
-  
-  *Click to watch the full demonstration on YouTube*
-  
+<a href="https://www.youtube.com/watch?v=VpzodTreVAQ">
+<img src="https://img.youtube.com/vi/VpzodTreVAQ/maxresdefault.jpg" alt="Viewer Demo" width="80%">
+</a>
 </div>
+
+**Key Features:**
+
+- **Deep Filtering:** Filter thousands of images instantly by split (`train`, `val`, `test`), required classes, object count, or even specific bounding box sizes (e.g., "Find images with tiny objects under 1% area").
+* **Intuitive Inspection:** Smooth grid navigation with hover-to-zoom and detailed metadata inspector.
+* **Local Rendering:** High-speed visualization of thousands of local files without latency.
 
 ---
 
-## ✨ Key Features
+### 📊 2. The Analyzer (Data Audit)
 
-### 🔍 1. Dataset Viewer
-- **Deep Filtering:** Filter thousands of images instantly by split (`train`, `val`, `test`), required classes, object count, or even specific bounding box sizes (e.g., "Find images with tiny objects under 1% area").
-- **Apple-Style UX:** Fluid Masonry/Grid layouts with hover-to-zoom pop-outs and detailed inspector modals.
+*Instant health metrics for data-driven decisions.*
 
-### 📊 2. Analyzer & Data Health
+<div align="center">
+<a href="[https://www.youtube.com/watch?v=ID_VIDEO_ANALYZER](https://www.google.com/search?q=https://www.youtube.com/watch%3Fv%3DID_VIDEO_ANALYZER)">
+<img src="[https://img.youtube.com/vi/ID_VIDEO_ANALYZER/maxresdefault.jpg](https://www.google.com/search?q=https://img.youtube.com/vi/ID_VIDEO_ANALYZER/maxresdefault.jpg)" alt="Analyzer Demo" width="80%">
+</a>
+</div>
+
+**Key Features:**
+
 - **Distribution Charts:** Interactive Recharts graphs showing class imbalances and object size distributions.
-- **Duplicate Image Detection:** Finds exact copy images in your dataset and safely removes them while keeping the best annotation.
+- **Duplicate Image Detection:** Finds exact copy images in your dataset using MD5 hashing and safely removes them while keeping the best annotation.
 - **Duplicate Label Fixer:** Detects overlapping identical bounding boxes (common in bad auto-labeling) and purges them.
+- **Stratified Stats:** Visual verification of how classes are distributed across training and validation sets.
 
-### 🔀 3. Merger Matrix
+---
+
+### 🔀 3. The Merger (Scalability)
+
+*Consolidate disparate data sources into a unified powerhouse.*
+
+<div align="center">
+<a href="[https://www.youtube.com/watch?v=ID_VIDEO_MERGER](https://www.google.com/search?q=https://www.youtube.com/watch%3Fv%3DID_VIDEO_MERGER)">
+<img src="[https://img.youtube.com/vi/ID_VIDEO_MERGER/maxresdefault.jpg](https://www.google.com/search?q=https://img.youtube.com/vi/ID_VIDEO_MERGER/maxresdefault.jpg)" alt="Merger Demo" width="80%">
+</a>
+</div>
+
+**Key Features:**
+
 - **Visual Re-mapping:** Combine multiple datasets. If Dataset A calls it "Car" and Dataset B calls it "Vehicle", map them both to a single output class easily.
 - **Auto Re-Split:** Define your ideal ratio (e.g., 70% Train, 20% Val, 10% Test) and the engine will shuffle and correctly regenerate the dataset structure.
+* **Safe Copying:** Creates a fresh dataset copy with an updated `data.yaml` instead of moving original files.
 
-### 🎯 4. The Improver (Active Learning)
-- **Video-to-Dataset:** Upload a video and a YOLO model. The engine samples frames and auto-annotates them.
+---
+
+### 🎯 4. The Improver (Optimization)
+
+*Target model blind spots and close the active learning loop.*
+
+<div align="center">
+<a href="[https://www.youtube.com/watch?v=ID_VIDEO_IMPROVER](https://www.google.com/search?q=https://www.youtube.com/watch%3Fv%3DID_VIDEO_IMPROVER)">
+<img src="[https://img.youtube.com/vi/ID_VIDEO_IMPROVER/maxresdefault.jpg](https://www.google.com/search?q=https://img.youtube.com/vi/ID_VIDEO_IMPROVER/maxresdefault.jpg)" alt="Improver Demo" width="80%">
+</a>
+</div>
+
+**Key Features:**
+
+* **Weight-Based Triage:** Load your `best.pt`, run inference on raw video, and flag exactly where the model fails.
 - **Triage Mode:** Quickly swipe through predictions and flag frames where the model failed (False Positives/Negatives).
 - **Annotation Editor:** A built-in Konva.js canvas to manually fix bounding boxes, adjust classes, and export the corrected frames as a pristine dataset ready for fine-tuning.
+* **Direct Export:** Convert corrected frames directly into a train-ready format to improve the next version of your model.
 
 ---
 
