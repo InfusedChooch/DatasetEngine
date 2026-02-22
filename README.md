@@ -19,11 +19,9 @@
 <div align="center">
 
   [🌟 Why Dataset Engine?](#-why-dataset-engine) • [📦 Video Demo](#-video-demo) • [📦 Modules](#-modules) • [🛠 Tech Stack](#-tech-stack)
-
   <br>
 
   [🚀 Getting Started](#-getting-started) • [👨‍💻 Author](#-author) • [📜 License](#-license)
-
 </div>
   
   **If you find Dataset Engine useful, please consider supporting the development!** <br>
@@ -266,8 +264,14 @@ You are ready to manage your datasets!
 
 **Dataset Engine** is created and maintained by **sPappalard**.
 
+If you find this project useful, please give it a ⭐ star or support the development!
 
 <div align="center">
+
+[![GitHub](https://img.shields.io/badge/GitHub-sPappalard-181717?style=for-the-badge&logo=github)](https://github.com/sPappalard)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-0A66C2?style=for-the-badge&logo=linkedin)](https://www.linkedin.com/in/salvatore-pappalardo98/)
+[![Email](https://img.shields.io/badge/Email-Contact_Me-D14836?style=for-the-badge&logo=gmail&logoColor=white)](mailto:salvatore.pappalardo.job@gmail.com)  
+[![Buy Me A Coffee](https://img.shields.io/badge/Buy_Me_A_Coffee-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://www.buymeacoffee.com/spappalard)
 
 </div>
 
