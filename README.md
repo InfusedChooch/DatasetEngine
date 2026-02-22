@@ -17,9 +17,13 @@
   **An all-in-one local GUI to visualize, analyze, merge, and rapidly improve your Computer Vision datasets.**
   
 <div align="center">
+
   [🌟 Why Dataset Engine?](#-why-dataset-engine) • [📦 Video Demo](#-video-demo) • [📦 Modules](#-modules) • [🛠 Tech Stack](#-tech-stack)
+
   <br>
+
   [🚀 Getting Started](#-getting-started) • [👨‍💻 Author](#-author) • [📜 License](#-license)
+
 </div>
   
   **If you find Dataset Engine useful, please consider supporting the development!** <br>
@@ -300,7 +304,7 @@ SOFTWARE.
 
 <div align="center">
 
-  **Built with ❤️ by [@sPappalard**](https://github.com/sPappalard)
+  Built with ❤️ by [@sPappalard](https://github.com/sPappalard)
 
   [⬆ Back to Top](#readme-top)
 </div>
