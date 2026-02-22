@@ -57,6 +57,9 @@ Whether you have a messy dataset full of duplicates, need to merge datasets with
 
 ---
 ## 🎬 Video Demo
+<div align="center">
+  <video src="https://github.com/user-attachments/assets/e3b9423a-0856-4caa-b23f-acee332a6cc8" width="100%" controls title="Video Demo"></video>
+</div>
 
 ## 📦 Modules 
 
