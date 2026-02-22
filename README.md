@@ -82,8 +82,8 @@ Whether you have a messy dataset full of duplicates, need to merge datasets with
 **Key Features:**
 
 - **Deep Filtering:** Filter thousands of images instantly by split (`train`, `val`, `test`), required classes, object count, or even specific bounding box sizes (e.g., "Find images with tiny objects under 1% area").
-* **Intuitive Inspection:** Smooth grid navigation with hover-to-zoom and detailed metadata inspector.
-* **Local Rendering:** High-speed visualization of thousands of local files without latency.
+-  **Intuitive Inspection:** Smooth grid navigation with hover-to-zoom and detailed metadata inspector.
+-  **Local Rendering:** High-speed visualization of thousands of local files without latency.
 
 ---
 
@@ -92,9 +92,15 @@ Whether you have a messy dataset full of duplicates, need to merge datasets with
 *Instant health metrics for data-driven decisions.*
 
 <div align="center">
-<a href="https://www.youtube.com/watch?v=mCTK3ocVdro>"
-<img src="https://img.youtube.com/vi/mCTK3ocVdro/maxresdefault.jpg" alt="Analyzer Demo" width="100%">
+<a href="https://www.youtube.com/watch?v=mCTK3ocVdro">
+<img src="https://img.youtube.com/vi/mCTK3ocVdro/maxresdefault.jpg" alt="Watch Analyzer Demo Video" width="100%">
 </a>
+
+
+
+
+
+<b>🎬 <a href="https://www.youtube.com/watch?v=mCTK3ocVdro">Click here to watch the full Analyzer Demo</a></b>
 </div>
 
 **Key Features:**
@@ -112,15 +118,21 @@ Whether you have a messy dataset full of duplicates, need to merge datasets with
 
 <div align="center">
 <a href="https://www.youtube.com/watch?v=vDLzeiZdWQ0">
-<img src="https://img.youtube.com/vi/vDLzeiZdWQ0/maxresdefault.jpg" alt="Merger Demo" width="100%">
+<img src="https://img.youtube.com/vi/vDLzeiZdWQ0/maxresdefault.jpg" alt="Watch Merger Demo Video" width="100%">
 </a>
+
+
+
+
+
+<b>🎬 <a href="https://www.youtube.com/watch?v=vDLzeiZdWQ0">Click here to watch the full Merger Demo</a></b>
 </div>
 
 **Key Features:**
 
 - **Visual Re-mapping:** Combine multiple datasets. If Dataset A calls it "Car" and Dataset B calls it "Vehicle", map them both to a single output class easily.
 - **Auto Re-Split:** Define your ideal ratio (e.g., 70% Train, 20% Val, 10% Test) and the engine will shuffle and correctly regenerate the dataset structure.
-* **Safe Copying:** Creates a fresh dataset copy with an updated `data.yaml` instead of moving original files.
+- **Safe Copying:** Creates a fresh dataset copy with an updated `data.yaml` instead of moving original files.
 
 ---
 
@@ -130,16 +142,22 @@ Whether you have a messy dataset full of duplicates, need to merge datasets with
 
 <div align="center">
 <a href="https://www.youtube.com/watch?v=wD4lvi7nsVw">
-<img src="https://img.youtube.com/vi/wD4lvi7nsVw/maxresdefault.jpg" alt="Improver Demo" width="100%">
+<img src="https://img.youtube.com/vi/wD4lvi7nsVw/maxresdefault.jpg" alt="Watch Improver Demo Video" width="100%">
 </a>
+
+
+
+
+
+<b>🎬 <a href="https://www.youtube.com/watch?v=wD4lvi7nsVw">Click here to watch the full Improver Demo</a></b>
 </div>
 
 **Key Features:**
 
-* **Weight-Based Triage:** Load your `best.pt`, run inference on raw video, and flag exactly where the model fails.
+- **Weight-Based Triage:** Load your `best.pt`, run inference on raw video, and flag exactly where the model fails.
 - **Triage Mode:** Quickly swipe through predictions and flag frames where the model failed (False Positives/Negatives).
 - **Annotation Editor:** A built-in Konva.js canvas to manually fix bounding boxes, adjust classes, and export the corrected frames as a pristine dataset ready for fine-tuning.
-* **Direct Export:** Convert corrected frames directly into a train-ready format to improve the next version of your model.
+- **Direct Export:** Convert corrected frames directly into a train-ready format to improve the next version of your model.
 
 ---
 
