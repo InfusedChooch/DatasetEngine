@@ -301,7 +301,5 @@ SOFTWARE.
 ---
 
 <div align="center">
-  **Built with ❤️ by [@sPappalard](https://github.com/sPappalard)**
-
   [⬆ Back to Top](#readme-top)
 </div>
