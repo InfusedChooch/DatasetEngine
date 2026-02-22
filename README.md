@@ -16,13 +16,11 @@
   
   **An all-in-one local GUI to visualize, analyze, merge, and rapidly improve your Computer Vision datasets.**
   
-  [🌟 Why Dataset Engine?](#-why-dataset-engine) •
-  [📦 Video Demo](#-video-demo) •
-  [📦 Modules](#-modules) •
-  [🛠 Tech Stack](#-tech-stack) •
-  [🚀 Getting Started](#-getting-started) • 
-  [👨‍💻 Author](#-author) •
-  [📜 License](#-license) 
+<div align="center">
+  [🌟 Why Dataset Engine?](#-why-dataset-engine) • [📦 Video Demo](#-video-demo) • [📦 Modules](#-modules) • [🛠 Tech Stack](#-tech-stack)
+  <br>
+  [🚀 Getting Started](#-getting-started) • [👨‍💻 Author](#-author) • [📜 License](#-license)
+</div>
   
   **If you find Dataset Engine useful, please consider supporting the development!** <br>
   <a href="https://www.buymeacoffee.com/sPappalard">
@@ -301,5 +299,8 @@ SOFTWARE.
 ---
 
 <div align="center">
+
+  **Built with ❤️ by [@sPappalard**](https://github.com/sPappalard)
+
   [⬆ Back to Top](#readme-top)
 </div>
