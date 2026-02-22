@@ -21,7 +21,7 @@
   [🌟 Why Dataset Engine?](#-why-dataset-engine) • [📦 Video Demo](#-video-demo) • [📦 Modules](#-modules) • [🛠 Tech Stack](#-tech-stack)
   <br>
 
-  [🚀 Getting Started](#-getting-started) • [👨‍💻 Author](#author) • [📜 License](#-license)
+  [🚀 Getting Started](#-getting-started) • [👨‍💻 Author](#author) • [📄 License](#-license)
 </div>
   
   **If you find Dataset Engine useful, please consider supporting the development!** <br>
@@ -258,6 +258,7 @@ You are ready to manage your datasets!
 
 ---
 
+<a name="author"></a>
 ## 👨‍💻 Author
 
 **Dataset Engine** is created and maintained by **sPappalard**.
