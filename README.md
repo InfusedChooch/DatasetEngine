@@ -17,7 +17,7 @@
   **An all-in-one local GUI to visualize, analyze, merge, and rapidly improve your Computer Vision datasets.**
   
   [🌟 Why Dataset Engine?](#-why-dataset-engine) •
-  [📦 Modules & Demos](#-modules--demos) 
+  [📦 Modules](#-modules) •
   [✨ Key Features](#-key-features) •
   [📸 UI Showcase](#-ui-showcase) •
   [🔄 Pipeline & Modules](#-how-it-works) •  
@@ -59,17 +59,24 @@ Whether you have a messy dataset full of duplicates, need to merge datasets with
 - **Format Agnostic:** Natively supports standard YOLO formats, perfectly handling structures like `images/train` and `labels/train`, or the typical Roboflow `../valid/images` exports without breaking.
 
 ---
+## 🎬 Video Demo
 
-## 📦 Modules & Demos
+## 📦 Modules 
 
-### 🔍 1. The Viewer (Visibility)
+### 🔍 1. The Viewer
 
 *Gain full transparency into your data assets.*
 
 <div align="center">
-<a href="https://www.youtube.com/watch?v=VpzodTreVAQ">
-<img src="https://img.youtube.com/vi/VpzodTreVAQ/maxresdefault.jpg" alt="Viewer Demo" width="100%">
+<a href="[https://www.youtube.com/watch?v=VpzodTreVAQ](https://www.youtube.com/watch?v=VpzodTreVAQ)">
+<img src="[https://img.youtube.com/vi/VpzodTreVAQ/maxresdefault.jpg](https://img.youtube.com/vi/VpzodTreVAQ/maxresdefault.jpg)" alt="Watch Viewer Demo Video" width="100%">
 </a>
+
+
+
+
+
+<b>🎬 <a href="[https://www.youtube.com/watch?v=VpzodTreVAQ](https://www.youtube.com/watch?v=VpzodTreVAQ)">Click here to watch the full Viewer Demo</a></b>
 </div>
 
 **Key Features:**
@@ -80,7 +87,7 @@ Whether you have a messy dataset full of duplicates, need to merge datasets with
 
 ---
 
-### 📊 2. The Analyzer (Data Audit)
+### 📊 2. The Analyzer
 
 *Instant health metrics for data-driven decisions.*
 
@@ -99,7 +106,7 @@ Whether you have a messy dataset full of duplicates, need to merge datasets with
 
 ---
 
-### 🔀 3. The Merger (Scalability)
+### 🔀 3. The Merger
 
 *Consolidate disparate data sources into a unified powerhouse.*
 
@@ -117,7 +124,7 @@ Whether you have a messy dataset full of duplicates, need to merge datasets with
 
 ---
 
-### 🎯 4. The Improver (Optimization)
+### 🎯 4. The Improver
 
 *Target model blind spots and close the active learning loop.*
 
