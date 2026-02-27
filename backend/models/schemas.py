@@ -3,6 +3,12 @@ from typing import List, Optional, Dict, Any
 from enum import Enum
 
 # Analyzer
+class SplitStat(BaseModel):
+    total_images: int = 0
+    total_labels: int = 0
+    class_distribution: Dict[str, int] = {}
+    image_distribution: Dict[str, int] = {}
+
 class DatasetStats(BaseModel):
     dataset_id: str
     name: str
@@ -31,12 +37,6 @@ class CleanupRequest(BaseModel):
     duplicate_groups: List[List[str]]
     clean_images: bool = False
     clean_labels: bool = False
-
-class SplitStat(BaseModel):
-    total_images: int = 0
-    total_labels: int = 0
-    class_distribution: Dict[str, int] = {}
-    image_distribution: Dict[str, int] = {}
 
 class ResplitRequest(BaseModel):
     dataset_path: str
