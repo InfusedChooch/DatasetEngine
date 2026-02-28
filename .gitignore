@@ -24,6 +24,7 @@ frontend/node_modules/
 # Build di produzione
 dist/
 build/
+datasets/
 
 # Log
 npm-debug.log*
