@@ -5,8 +5,57 @@ from typing import List, Dict, Any
 
 class ViewerService:
     def __init__(self):
-        # Cache in memory to make filtering blazing fast
+        # In-memory dataset cache.
         self.current_dataset = {}
+        # Cache label parsing by image path to avoid repeated disk reads.
+        self._label_cache: Dict[str, Dict[str, Any]] = {}
+
+    def _resolve_label_path(self, img_file: Path) -> Path:
+        parts = list(img_file.parts)
+        if "images" in parts:
+            idx = len(parts) - 1 - parts[::-1].index("images")
+            parts[idx] = "labels"
+            return Path(*parts).with_suffix('.txt')
+        return img_file.with_suffix('.txt')
+
+    def _parse_label_file(self, lbl_file: Path) -> Dict[str, Any]:
+        boxes = []
+        class_counts = {}
+
+        if lbl_file.exists():
+            try:
+                with open(lbl_file, 'r', encoding='utf-8') as lf:
+                    for line in lf.read().strip().split('\n'):
+                        parts_line = line.strip().split()
+                        if len(parts_line) >= 5:
+                            c_id = int(parts_line[0])
+                            w, h = float(parts_line[3]), float(parts_line[4])
+                            area = w * h
+                            boxes.append({
+                                "c": c_id,
+                                "x": float(parts_line[1]),
+                                "y": float(parts_line[2]),
+                                "w": w,
+                                "h": h,
+                                "a": area
+                            })
+                            class_counts[c_id] = class_counts.get(c_id, 0) + 1
+            except Exception:
+                # Ignore broken label files for robustness.
+                pass
+
+        return {"boxes": boxes, "counts": class_counts}
+
+    def _get_label_metadata(self, img: Dict[str, Any]) -> Dict[str, Any]:
+        img_path = img["path"]
+        cached = self._label_cache.get(img_path)
+        if cached is not None:
+            return cached
+
+        lbl_file = Path(img["label_path"])
+        parsed = self._parse_label_file(lbl_file)
+        self._label_cache[img_path] = parsed
+        return parsed
 
     def load_dataset(self, yaml_path: str) -> Dict:
         ypath = Path(yaml_path).resolve()
@@ -21,6 +70,7 @@ class ViewerService:
         if isinstance(classes, dict):
             classes = [classes[k] for k in sorted(classes.keys())]
 
+        self._label_cache = {}
         dataset_info = {
             "path": str(base_dir),
             "classes": classes,
@@ -72,44 +122,13 @@ class ViewerService:
                 
                 for img_file in img_dir.rglob("*"):
                     if img_file.suffix.lower() not in ['.jpg', '.jpeg', '.png']: continue
-                    
-                    # Label Path Calculation (Search for "images" and make it "labels")
-                    lbl_file = None
-                    parts = list(img_file.parts)
-                    if "images" in parts:
-                        idx = len(parts) - 1 - parts[::-1].index("images")
-                        parts[idx] = "labels"
-                        lbl_file = Path(*parts).with_suffix('.txt')
-                    else:
-                        lbl_file = img_file.with_suffix('.txt')
-
-                    boxes = []
-                    class_counts = {}
-                    
-                    if lbl_file and lbl_file.exists():
-                        try:
-                            with open(lbl_file, 'r', encoding='utf-8') as lf:
-                                for line in lf.read().strip().split('\n'):
-                                    parts_line = line.strip().split()
-                                    if len(parts_line) >= 5:
-                                        c_id = int(parts_line[0])
-                                        w, h = float(parts_line[3]), float(parts_line[4])
-                                        area = w * h
-                                        boxes.append({
-                                            "c": c_id,
-                                            "x": float(parts_line[1]), "y": float(parts_line[2]),
-                                            "w": w, "h": h, "a": area
-                                        })
-                                        class_counts[c_id] = class_counts.get(c_id, 0) + 1
-                        except Exception:
-                            pass
+                    lbl_file = self._resolve_label_path(img_file)
 
                     dataset_info["images"].append({
                         "id": img_id_counter,
                         "path": str(img_file.absolute()),
                         "split": split,
-                        "boxes": boxes,
-                        "counts": class_counts
+                        "label_path": str(lbl_file)
                     })
                     img_id_counter += 1
 
@@ -124,30 +143,49 @@ class ViewerService:
         if not self.current_dataset:
             return []
             
+        classes_filter = filters.get("classes")
+        has_classes_filter = classes_filter is not None and len(classes_filter) > 0
+        min_boxes = filters.get("min_boxes", 0)
+        max_boxes = filters.get("max_boxes")
+        min_a = filters.get("min_area", 0.0)
+        max_a = filters.get("max_area", 1.0)
+        needs_label_metadata = (
+            has_classes_filter or
+            min_boxes > 0 or
+            max_boxes is not None or
+            min_a > 0.0 or
+            max_a < 1.0
+        )
+
         results = []
         for img in self.current_dataset["images"]:
             # Split filter
             if filters.get("splits") and "all" not in filters["splits"] and img["split"] not in filters["splits"]:
                 continue
-            
-            # Number of bounding boxes filter
-            box_count = len(img["boxes"])
-            if box_count < filters.get("min_boxes", 0): continue
-            if filters.get("max_boxes") is not None and box_count > filters["max_boxes"]: continue
 
-            # Allowed Classes Filter
-            allowed_classes = filters.get("classes")
-            if allowed_classes is not None and len(allowed_classes) > 0:
-                has_allowed = any(c_id in allowed_classes for c_id in img["counts"].keys())
-                if not has_allowed and box_count > 0: continue
+            if needs_label_metadata:
+                meta = self._get_label_metadata(img)
+                box_count = len(meta["boxes"])
 
-            # Box Area Filter
-            min_a = filters.get("min_area", 0.0)
-            max_a = filters.get("max_area", 1.0)
-            if min_a > 0.0 or max_a < 1.0:
-                if box_count == 0 and min_a > 0: continue
-                has_valid_area = any(min_a <= b["a"] <= max_a for b in img["boxes"])
-                if not has_valid_area and box_count > 0: continue
+                # Number of bounding boxes filter
+                if box_count < min_boxes:
+                    continue
+                if max_boxes is not None and box_count > max_boxes:
+                    continue
+
+                # Allowed Classes Filter
+                if has_classes_filter:
+                    has_allowed = any(c_id in classes_filter for c_id in meta["counts"].keys())
+                    if not has_allowed and box_count > 0:
+                        continue
+
+                # Box Area Filter
+                if min_a > 0.0 or max_a < 1.0:
+                    if box_count == 0 and min_a > 0:
+                        continue
+                    has_valid_area = any(min_a <= b["a"] <= max_a for b in meta["boxes"])
+                    if not has_valid_area and box_count > 0:
+                        continue
 
             results.append(img)
 
@@ -156,10 +194,21 @@ class ViewerService:
         limit = filters.get("limit", 20)
         start = (page - 1) * limit
         end = start + limit
+
+        page_items = []
+        for img in results[start:end]:
+            meta = self._get_label_metadata(img)
+            page_items.append({
+                "id": img["id"],
+                "path": img["path"],
+                "split": img["split"],
+                "boxes": meta["boxes"],
+                "counts": meta["counts"]
+            })
         
         return {
             "total_matches": len(results),
             "page": page,
             "has_more": end < len(results),
-            "data": results[start:end]
+            "data": page_items
         }
