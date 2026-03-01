@@ -3,6 +3,7 @@ import { Upload, FolderOpen, Target, Video } from 'lucide-react'
 import { useProjectStore } from '../hooks/useProject'
 import { useNavigate } from 'react-router-dom'
 import { createPortal } from 'react-dom'
+import { api } from '../lib/api'
 
 export default function ImprovementSetup() {
   const navigate = useNavigate()
@@ -22,24 +23,21 @@ export default function ImprovementSetup() {
   // SEPARATE CALLS FOR EACH FILE TYPE
   const handleBrowseModel = async () => {
       try { 
-          const res = await fetch('http://localhost:8000/api/improve/browse_model');
-          const data = await res.json();
+          const { data } = await api.browseImprovementModel()
           if(data.path) setFormData({...formData, modelPath: data.path});
       } catch(e) { console.error("Error browsing model:", e); }
   }
 
   const handleBrowseVideo = async () => {
       try { 
-          const res = await fetch('http://localhost:8000/api/improve/browse_video');
-          const data = await res.json();
+          const { data } = await api.browseImprovementVideo()
           if(data.path) setFormData({...formData, sourcePath: data.path});
       } catch(e) { console.error("Error browsing video:", e); }
   }
 
   const handleBrowseFolder = async () => {
       try { 
-          const res = await fetch('http://localhost:8000/api/improve/browse_folder');
-          const data = await res.json();
+          const { data } = await api.browseImprovementFolder()
           if(data.path) setFormData({...formData, sourcePath: data.path});
       } catch(e) { console.error("Error browsing folder:", e); }
   }
@@ -52,16 +50,13 @@ export default function ImprovementSetup() {
     setLogs(["🚀 Starting Setup..."])
     
     try {
-        const response = await fetch('http://localhost:8000/api/improve/create_stream', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                name: formData.name,
-                model_path: formData.modelPath,
-                source_path: formData.sourcePath,
-                sampling_rate: formData.samplingRate
-            })
+        const response = await api.createImprovementStream({
+            name: formData.name,
+            model_path: formData.modelPath,
+            source_path: formData.sourcePath,
+            sampling_rate: formData.samplingRate
         })
+        if (!response.ok || !response.body) throw new Error(`Create request failed (${response.status})`)
 
         const reader = response.body.getReader()
         const decoder = new TextDecoder()

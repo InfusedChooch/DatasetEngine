@@ -100,8 +100,17 @@ async def bulk_mark(project_id: str, frame_ids: list[int], include: bool = True)
 @router.post("/export")
 async def export_dataset(request: ExportRequest):
     try:
-        output_path, count = exporter_service.export_dataset(request)
-        return {"success": True, "output_path": str(output_path), "exported_frames": count}
+        result = exporter_service.export_dataset(request)
+        response = {
+            "success": True,
+            "output_path": str(result["output_path"]),
+            "exported_frames": int(result["exported_frames"]),
+            "split_counts": result.get("split_counts", {"train": 0, "val": 0}),
+        }
+        warnings = result.get("warnings") or []
+        if warnings:
+            response["warnings"] = warnings
+        return response
     except ValueError as e:
         # If there are no frames selected, send a clean 400 error to the Frontend
         raise HTTPException(status_code=400, detail=str(e))

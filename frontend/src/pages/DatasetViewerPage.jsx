@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { FolderOpen, Filter, Layers, SquareSquare, Maximize, Target, RotateCcw, X, ZoomIn, Info, MousePointer2, Image as ImageIcon, Eye, EyeOff, CheckCircle2 } from 'lucide-react'
 import { CLASS_COLORS } from './InferenceViewer'
 import { createPortal } from 'react-dom'
+import { api } from '../lib/api'
 
 export default function DatasetViewerPage() {
   const [yamlPath, setYamlPath] = useState('')
@@ -40,8 +41,7 @@ export default function DatasetViewerPage() {
 
   const handleBrowse = async () => {
       try {
-          const res = await fetch('http://localhost:8000/api/viewer/browse_yaml')
-          const data = await res.json()
+          const { data } = await api.browseViewerYaml()
           if(data.path) setYamlPath(data.path)
       } catch(e) {}
   }
@@ -50,15 +50,11 @@ export default function DatasetViewerPage() {
       if(!yamlPath) return alert("Select a YAML first")
       setIsInitializing(true) 
       try {
-          const res = await fetch('http://localhost:8000/api/viewer/load', {
-              method: 'POST', headers: {'Content-Type': 'application/json'},
-              body: JSON.stringify({path: yamlPath})
-          })
-          const data = await res.json()
+          const { data } = await api.loadViewerDataset(yamlPath)
           setDatasetInfo(data)
           resetFilters(false)
           await fetchImages(1, true)
-      } catch(e) { alert("Failed to load dataset") }
+      } catch(e) { alert(`Failed to load dataset: ${e.response?.data?.detail || e.message || e}`) }
       setIsInitializing(false) 
   }
 
@@ -75,15 +71,11 @@ export default function DatasetViewerPage() {
               page: pageNum,
               limit: 20
           }
-          const res = await fetch('http://localhost:8000/api/viewer/query', {
-              method: 'POST', headers: {'Content-Type': 'application/json'},
-              body: JSON.stringify(body)
-          })
-          const data = await res.json()
+          const { data } = await api.queryViewerImages(body)
           setImages(prev => reset ? data.data : [...prev, ...data.data])
           setHasMore(data.has_more)
           setTotalMatches(data.total_matches)
-      } catch(e) { console.error(e) }
+      } catch(e) { console.error('Failed to query images:', e) }
       setLoading(false)
   }
 
@@ -361,8 +353,7 @@ export default function DatasetViewerPage() {
 
 // --- CARD COMPONENT (HOVER ZOOM POP-OUT APPLE STYLE) ---
 function ImageCard({ img, datasetInfo, innerRef, onClick }) {
-    const encodePath = encodeURIComponent(img.path);
-    const src = `http://localhost:8000/api/viewer/image?path=${encodePath}`;
+    const src = api.getViewerImageUrl(img.path);
 
     return (
         <div ref={innerRef} className="relative group cursor-pointer" onClick={onClick}>
@@ -413,8 +404,7 @@ function ImageCard({ img, datasetInfo, innerRef, onClick }) {
 
 // --- FULLSCREEN MODAL WITH ZOOM (LOCKED) AND PAN ---
 function ImageModal({ img, datasetInfo, onClose }) {
-    const encodePath = encodeURIComponent(img.path);
-    const src = `http://localhost:8000/api/viewer/image?path=${encodePath}`;
+    const src = api.getViewerImageUrl(img.path);
     
     const [scale, setScale] = useState(1);
     const [pos, setPos] = useState({ x: 0, y: 0 });

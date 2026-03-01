@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from config import settings
-from routers import analyze, merge, improvement, viewer 
+from routers import analyze, live, merge, improvement, training, viewer
 
 settings.ensure_directories()
 
@@ -26,6 +26,8 @@ app.include_router(viewer.router, prefix="/api/viewer", tags=["Dataset Viewer"])
 app.include_router(analyze.router, prefix="/api/analyze", tags=["Analyzer"])
 app.include_router(merge.router, prefix="/api/merge", tags=["Merger"])
 app.include_router(improvement.router, prefix="/api/improve", tags=["Model Improvement"])
+app.include_router(training.router, prefix="/api/training", tags=["Trainer"])
+app.include_router(live.router, prefix="/api/live", tags=["Live Inference"])
 
 @app.get("/")
 async def root():
@@ -36,7 +38,9 @@ async def root():
             "Dataset Viewer - Visually explore datasets",
             "Analyzer - Understand your datasets",
             "Merger - Combine multiple datasets",
-            "Model Improvement - Find & fix model failures"
+            "Model Improvement - Find & fix model failures",
+            "Trainer - Train, export and validate YOLO models",
+            "Live Inference - Real-time screen/webcam/udp detection and capture",
         ]
     }
 

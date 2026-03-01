@@ -1,5 +1,5 @@
-from pydantic import BaseModel
-from typing import List, Optional, Dict, Any
+from pydantic import BaseModel, ConfigDict, Field
+from typing import List, Optional, Dict, Any, Literal
 from enum import Enum
 
 # Analyzer
@@ -136,3 +136,116 @@ class ExportRequest(BaseModel):
     output_name: str
     selected_frames: Optional[List[int]] = None
     include_all: bool = False
+    val_ratio: float = Field(0.2, ge=0.0, le=0.9)
+    split_seed: int = 42
+
+
+# Trainer
+TrainingCommand = Literal["train", "export", "validate", "split"]
+
+
+class TrainParams(BaseModel):
+    data: str
+    model: str = "yolov8s.pt"
+    imgsz: int = 640
+    epochs: int = 100
+    batch: int = -1
+    device: str = "auto"
+    name: str = ""
+    patience: int = 30
+    workers: int = 8
+    seed: int = 42
+    resume: bool = False
+    export_formats: str = "onnx,engine"
+    publish: bool = True
+    publish_dir: str = ""
+
+
+class ExportParams(BaseModel):
+    weights: str
+    imgsz: int = 640
+    formats: str = "onnx,engine"
+    name: str = ""
+    publish: bool = True
+    publish_dir: str = ""
+
+
+class ValidateParams(BaseModel):
+    weights: str
+    data: str
+    imgsz: int = 640
+    device: str = "auto"
+    batch: int = -1
+
+
+class SplitParams(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    dataset: str
+    val_fraction: float = 0.2
+    seed: int = 42
+    copy_mode: bool = Field(False, alias="copy")
+    update_yaml: bool = True
+    dry_run: bool = False
+
+
+class TrainingCreateRequest(BaseModel):
+    command: TrainingCommand
+    params: Dict[str, Any]
+    dry_run: bool = False
+
+    def normalized_params(self) -> Dict[str, Any]:
+        validators = {
+            "train": TrainParams,
+            "export": ExportParams,
+            "validate": ValidateParams,
+            "split": SplitParams,
+        }
+        model_cls = validators[self.command]
+        return model_cls(**self.params).model_dump(by_alias=True)
+
+
+# Live Inference
+LiveSourceType = Literal["screen", "webcam", "udp", "youtube_live"]
+
+
+class LiveROI(BaseModel):
+    x: int = Field(0, ge=0)
+    y: int = Field(0, ge=0)
+    w: int = Field(0, ge=0)
+    h: int = Field(0, ge=0)
+
+
+class LiveUDPConfig(BaseModel):
+    ip: str = "127.0.0.1"
+    port: int = Field(4958, ge=1, le=65535)
+    target_fps: int = Field(60, ge=1, le=240)
+
+
+class LiveStartRequest(BaseModel):
+    source_type: LiveSourceType
+    model_path: str
+    target_fps: int = Field(15, ge=1, le=60)
+    imgsz: int = Field(640, ge=64, le=2048)
+    confidence: float = Field(0.25, ge=0.01, le=0.99)
+    roi: Optional[LiveROI] = None
+    udp: Optional[LiveUDPConfig] = None
+    youtube_url: str = ""
+    project_name: str = ""
+    device_index: int = Field(0, ge=0)
+    auto_capture_interval: float = Field(0.0, ge=0.0, le=3600.0)
+    auto_capture_min_confidence: float = Field(0.0, ge=0.0, le=1.0)
+
+
+class LiveStopRequest(BaseModel):
+    session_id: str = ""
+
+
+class LiveCaptureRequest(BaseModel):
+    session_id: str
+    include_in_training: bool = True
+
+
+class LiveFrameRequest(BaseModel):
+    session_id: str
+    image_jpeg_base64: str

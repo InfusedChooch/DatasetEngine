@@ -75,6 +75,31 @@ function Test-BackendHealth {
     }
 }
 
+function Test-DatasetEngineBackend {
+    param([int]$PortToCheck)
+    try {
+        $resp = Invoke-RestMethod -Method Get -Uri ("http://127.0.0.1:{0}/api/settings" -f $PortToCheck) -TimeoutSec 2 -ErrorAction Stop
+        return ($null -ne $resp.storage_path -and $null -ne $resp.datasets_path -and $null -ne $resp.projects_path)
+    }
+    catch {
+        return $false
+    }
+}
+
+function Stop-ProcessByPidBestEffort {
+    param([int]$PidToStop)
+
+    try {
+        Stop-Process -Id $PidToStop -Force -ErrorAction Stop
+        return $true
+    }
+    catch {
+        # Fallback for cases where process details are inaccessible from CIM.
+        & cmd.exe /d /c ("taskkill /PID {0} /F >nul 2>nul" -f $PidToStop)
+        return ($LASTEXITCODE -eq 0)
+    }
+}
+
 function Wait-ForPortRelease {
     param(
         [int]$PortToCheck,
@@ -118,6 +143,7 @@ if (Test-PortInUse -PortToCheck $Port) {
     $owner = Get-PortOwnerDetails -PortToCheck $Port
     $isLikelyBackend = $false
     $portFreedByRestart = $false
+    $isDatasetBackend = Test-DatasetEngineBackend -PortToCheck $Port
 
     if ($owner -and $owner.CommandLine) {
         if ($owner.CommandLine -match "uvicorn\s+main:app") {
@@ -125,14 +151,16 @@ if (Test-PortInUse -PortToCheck $Port) {
         }
     }
 
-    if ($isLikelyBackend) {
+    if ($isLikelyBackend -or $isDatasetBackend) {
         if ($RestartIfRunning) {
-            Write-Info "Restart requested. Stopping existing backend PID $($owner.Pid) on port $Port."
-            try {
-                Stop-Process -Id $owner.Pid -Force -ErrorAction Stop
+            if (-not $owner) {
+                Fail "Restart requested, but could not resolve the owning PID on port $Port."
             }
-            catch {
-                Fail "Failed to stop existing backend PID $($owner.Pid): $($_.Exception.Message)"
+
+            Write-Info "Restart requested. Stopping existing backend PID $($owner.Pid) on port $Port."
+            $stopped = Stop-ProcessByPidBestEffort -PidToStop $owner.Pid
+            if (-not $stopped) {
+                Fail "Failed to stop existing backend PID $($owner.Pid)."
             }
 
             if (-not (Wait-ForPortRelease -PortToCheck $Port -TimeoutSeconds 10)) {
@@ -143,7 +171,12 @@ if (Test-PortInUse -PortToCheck $Port) {
             Write-Info "Previous backend stopped. Continuing with fresh start."
         }
         elseif (Test-BackendHealth -PortToCheck $Port) {
-            Write-Info "Backend is already running on http://localhost:$Port (PID $($owner.Pid))."
+            if ($owner) {
+                Write-Info "Backend is already running on http://localhost:$Port (PID $($owner.Pid))."
+            }
+            else {
+                Write-Info "Backend is already running on http://localhost:$Port."
+            }
             Write-Info "Swagger docs: http://localhost:$Port/docs"
             exit 0
         }
@@ -180,7 +213,7 @@ if (-not (Test-Path $venvPython)) {
     Fail "Backend venv python not found after bootstrap: $venvPython"
 }
 
-$env:BASE_PATH = Join-Path $repoRoot "DatasetEngine"
+$env:BASE_PATH = (Resolve-Path -LiteralPath $repoRoot).Path
 Write-Info "BASE_PATH=$($env:BASE_PATH)"
 
 if (-not (Test-Path $backendDir)) {

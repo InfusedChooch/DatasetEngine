@@ -129,8 +129,7 @@ export default function AnnotationEditor() {
 
   const handleBrowseExport = async () => {
       try { 
-          const res = await fetch('http://localhost:8000/api/improve/browse_folder');
-          const data = await res.json();
+          const { data } = await api.browseImprovementFolder()
           if(data.path) setExportPath(data.path);
       } catch(e) { console.error(e); }
   }
@@ -180,7 +179,9 @@ export default function AnnotationEditor() {
     )
   }
 
-  const imagePath = currentFrame ? `http://localhost:8000/storage/projects/${currentProject.project_id}/${currentFrame.frame_path}` : null;
+  const imagePath = currentFrame
+    ? api.getStorageUrl(`projects/${currentProject.project_id}/${currentFrame.frame_path}`)
+    : null;
 
   return (
     <div className="h-[calc(100vh-120px)] flex flex-col gap-4 relative">

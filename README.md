@@ -314,3 +314,81 @@ SOFTWARE.
 
   [⬆ Back to Top](#readme-top)
 </div>
+
+---
+
+## Trainer Module (DatasetEngine)
+
+DatasetEngine now includes a built-in Trainer module in the web UI (`/train`) with:
+
+- `train`: YOLO training with resume, export formats, publish toggle, and live logs.
+- `export`: export existing `.pt` weights to ONNX/ENGINE (+ class sidecar).
+- `validate`: run model validation against a dataset yaml.
+- `split`: create/preview train/val split from train-only datasets.
+
+### Trainer API Endpoints
+
+- `GET /api/training/pickers`
+- `GET /api/training/browse?kind={yaml|model|weights|dir|dataset}`
+- `POST /api/training/create_stream`
+- `POST /api/training/stop`
+- `GET /api/training/status`
+- `GET /api/training/history?limit=50`
+
+### Trainer Workspace Paths
+
+- Dataset root: `datasets/`
+- Configs: `projects/trainer/configs/`
+- Runs: `projects/trainer/runs/`
+- Artifacts: `exports/trainer_artifacts/`
+- Published models: `models/`
+
+### Runtime Notes
+
+- Only one training/export/validate/split job runs at a time.
+- Logs stream as NDJSON events (`log`, `progress`, `status`, `complete`, `error`).
+- Stop requests attempt graceful termination first, then force kill if needed.
+- Trainer validates selected YAML configs before launch; invalid dataset paths are blocked preflight.
+- `GET /api/training/pickers` now includes `config_status[]` (`config_path`, `dataset_path`, `exists`, `normalized_path`) for stale-path warnings.
+- Device `auto` resolves to GPU (`cuda:0`) when available, otherwise CPU fallback.
+
+### Improver Export Split Behavior
+
+- `POST /api/improve/export` now performs deterministic train/val splitting by default.
+- Request supports:
+  - `val_ratio` (default `0.2`)
+  - `split_seed` (default `42`)
+- Response includes:
+  - `split_counts` (`train`, `val`)
+  - optional `warnings` for tiny datasets or val fallback cases
+- Exported `data.yaml` uses:
+  - `train: images/train`
+  - `val: images/val` (or explicit fallback to `images/train` only when val is empty)
+
+### Frontend API Base URL
+
+- Frontend uses `VITE_API_BASE_URL` for backend origin.
+- Default: `http://localhost:8000`
+- Example:
+
+```bash
+set VITE_API_BASE_URL=http://127.0.0.1:8000
+```
+
+### Runtime Storage Policy
+
+- Runtime-generated contents are local-only and git-ignored under:
+  - `datasets/`
+  - `models/`
+  - `projects/`
+  - `exports/`
+  - `temp/`
+- Keep `.gitkeep` and folder-level `README.md` placeholders only.
+
+### Startup Expectations
+
+- Preferred startup scripts from repo root:
+  - `./setup.ps1`
+  - `./start-backend.ps1`
+  - `./start-frontend.ps1`
+- Backend mounts `/storage` at repo root for local asset rendering.

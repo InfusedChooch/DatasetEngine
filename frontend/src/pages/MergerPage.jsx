@@ -176,11 +176,10 @@ export default function MergerPage() {
         }
 
         try {
-            const response = await fetch('http://localhost:8000/api/merge/execute', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            })
+            const response = await api.createMergeStream(payload)
+            if (!response.ok || !response.body) {
+                throw new Error(`Merge request failed (${response.status})`)
+            }
 
             const reader = response.body.getReader()
             const decoder = new TextDecoder()

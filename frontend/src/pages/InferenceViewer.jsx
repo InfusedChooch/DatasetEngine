@@ -279,7 +279,10 @@ export default function InferenceViewer() {
             
             <div className="flex-1 relative flex items-center justify-center bg-black overflow-hidden p-4">
                 <div className="relative inline-block h-full">
-                    <img src={`http://localhost:8000/storage/projects/${currentProject.project_id}/${filteredFrames[currentIndex].frame_path}`} className="h-full w-auto object-contain pointer-events-none" />
+                    <img
+                      src={api.getStorageUrl(`projects/${currentProject.project_id}/${filteredFrames[currentIndex].frame_path}`)}
+                      className="h-full w-auto object-contain pointer-events-none"
+                    />
                     {filteredFrames[currentIndex].boxes.map((box, i) => {
                         if (hiddenClasses.has(box.class_name)) return null;
                         const thresh = classThresholds[box.class_name] ?? 0.50;
@@ -326,7 +329,7 @@ function FrameCard({ frame, projectId, isSelected, onToggleSelect, hiddenClasses
   return (
     <div onClick={onToggleSelect} className={`relative group cursor-pointer bg-black rounded-lg overflow-hidden border-2 transition-all ${isSelected ? 'border-red-500 shadow-lg shadow-red-500/30' : 'border-transparent hover:border-slate-600'}`}>
       <div className="relative w-full aspect-video">
-          <img src={`http://localhost:8000/storage/projects/${projectId}/${frame.frame_path}`} className="w-full h-full object-cover" />
+          <img src={api.getStorageUrl(`projects/${projectId}/${frame.frame_path}`)} className="w-full h-full object-cover" />
           {frame.boxes.map((b,i) => {
               if(hiddenClasses.has(b.class_name)) return null;
               const thresh = classThresholds[b.class_name] ?? 0.50;

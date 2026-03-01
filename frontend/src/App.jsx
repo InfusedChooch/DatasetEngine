@@ -1,11 +1,13 @@
 import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom'
-import { BarChart3, Merge, Target, Image as ImageIcon, Github, Coffee } from 'lucide-react'
+import { BarChart3, Merge, Target, Image as ImageIcon, Github, Coffee, Flame, Radio } from 'lucide-react'
 import AnalyzerPage from './pages/AnalyzerPage'
 import MergerPage from './pages/MergerPage'
 import ImprovementSetup from './pages/ImprovementSetup'
 import InferenceViewer from './pages/InferenceViewer'
 import AnnotationEditor from './pages/AnnotationEditor'
 import DatasetViewerPage from './pages/DatasetViewerPage'
+import TrainerPage from './pages/TrainerPage'
+import LivePage from './pages/LivePage'
 
 export default function App() {
   return (
@@ -21,6 +23,8 @@ export default function App() {
             <Route path="/improve" element={<ImprovementSetup />} />
             <Route path="/improve/viewer" element={<InferenceViewer />} />
             <Route path="/improve/editor" element={<AnnotationEditor />} />
+            <Route path="/train" element={<TrainerPage />} />
+            <Route path="/live" element={<LivePage />} />
           </Routes>
         </main>
 
@@ -115,6 +119,12 @@ function Navigation() {
             </NavLink>
             <NavLink to="/improve" icon={<Target size={16} />} active={isActive('/improve')}>
               Improver
+            </NavLink>
+            <NavLink to="/train" icon={<Flame size={16} />} active={isActive('/train')}>
+              Trainer
+            </NavLink>
+            <NavLink to="/live" icon={<Radio size={16} />} active={isActive('/live')}>
+              Live
             </NavLink>
           </div>
         </div>

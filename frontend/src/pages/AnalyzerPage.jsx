@@ -53,8 +53,7 @@ export default function AnalyzerPage() {
   // Choose Output folder
   const handleBrowseOutputFolder = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/analyze/browse_folder');
-      const data = await response.json();
+      const { data } = await api.browseAnalyzeOutputFolder()
       if (data.path) setOutputFolder(data.path);
     } catch (err) { console.error("Error browsing folder", err); }
   }
@@ -72,11 +71,10 @@ export default function AnalyzerPage() {
     const cleanPath = path.replace(/"/g, '')
 
     try {
-        const response = await fetch('http://localhost:8000/api/analyze/local', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ path: cleanPath, split: targetSplit })
-        })
+        const response = await api.createAnalyzeLocalStream({ path: cleanPath, split: targetSplit })
+        if (!response.ok || !response.body) {
+            throw new Error(`Analyze request failed (${response.status})`)
+        }
 
         const reader = response.body.getReader()
         const decoder = new TextDecoder()
@@ -138,17 +136,16 @@ export default function AnalyzerPage() {
       setLoading(true); setLogs([]); setProgress({current:0, total:0, percent:0}); setPreviewData(null);
       const cleanPath = pathInput.replace(/"/g, '');
       try {
-          const response = await fetch('http://localhost:8000/api/analyze/resplit', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ 
-                  dataset_path: cleanPath, 
-                  train_pct: resplitPct.train, val_pct: resplitPct.val, test_pct: resplitPct.test,
-                  priority_classes: priorityClasses,
-                  output_folder: outputFolder,
-                  is_preview: isPreview
-              })
+          const response = await api.createAnalyzeResplitStream({
+              dataset_path: cleanPath,
+              train_pct: resplitPct.train, val_pct: resplitPct.val, test_pct: resplitPct.test,
+              priority_classes: priorityClasses,
+              output_folder: outputFolder,
+              is_preview: isPreview
           });
+          if (!response.ok || !response.body) {
+              throw new Error(`Resplit request failed (${response.status})`);
+          }
           const reader = response.body.getReader();
           const decoder = new TextDecoder();
           let buffer = '';
